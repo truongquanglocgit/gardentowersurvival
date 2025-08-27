@@ -49,7 +49,7 @@ GameObject:
   - component: {fileID: -8375645251397838461}
   m_Layer: 3
   m_Name: TomatoTower
-  m_TagString: Untagged
+  m_TagString: Tower
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -166,6 +166,10 @@ MonoBehaviour:
   bulletObject: {fileID: 6043100686744096536}
   firePoint: {fileID: 2617662252324067974}
   minBulletSpeed: 30
+  minTowerDamage: 5
+  maxTowerDamage: 5
+  maxBulletSpeed: 30
+  seedCost: 50
 --- !u!54 &-8375645251397838461
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -191,7 +195,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 80
   m_CollisionDetection: 0
 --- !u!1001 &8304689458733727385
 PrefabInstance:
@@ -201,6 +205,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2617662252324067974}
     m_Modifications:
+    - target: {fileID: -225609513288769303, guid: 0a959e5fcd4ccd441bbadaee58252ce2, type: 3}
+      propertyPath: towerController
+      value: 
+      objectReference: {fileID: 8436264965044154250}
     - target: {fileID: 211239151272822387, guid: 0a959e5fcd4ccd441bbadaee58252ce2, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.05

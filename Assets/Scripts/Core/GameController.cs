@@ -11,11 +11,17 @@ public class GameController : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private Transform playerSpawnPoint;
     private TowerSelectUI towerSelectUI;
+    public TMPro.TextMeshProUGUI seedText;
+    public float Seed = 100;
+    [Header("Tower Limit")]
+    public int maxTowerCount = 20;
+    public TMPro.TextMeshProUGUI towerCountText;
 
+    [HideInInspector] public int currentTowerCount;
     void Start()
     {
-        
 
+        UpdateTowerCount();
         StartCoroutine(waveManager.PlayWave());
         dieCanvas.SetActive(false);
         if (player != null && playerSpawnPoint != null)
@@ -27,6 +33,13 @@ public class GameController : MonoBehaviour
         // Gán player vào camera follow
         Camera.main.GetComponent<CameraOrbit>().target = player.transform;
     }
+    
+
+    void Update()
+    {
+        seedText.text = $"Seed: {Seed}";
+    }
+
     internal void die()
     {
         Time.timeScale = 0;
@@ -44,12 +57,36 @@ public class GameController : MonoBehaviour
     }
 
 
-
+    public void addSeed( float seed)
+    {
+        Seed += seed;
+    }
     public void TryAgain()
     {
         Time.timeScale = 1f; // 🔁 Khôi phục tốc độ game nếu đang bị dừng
         Scene currentScene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(currentScene.buildIndex); // 🔄 Load lại scene hiện tại
     }
+    public void UpdateTowerCount()
+    {
+        GameObject[] towers = GameObject.FindGameObjectsWithTag("Tower");
+        currentTowerCount = 0;
+
+        foreach (var tower in towers)
+        {
+            
+            if (tower.activeInHierarchy)
+                currentTowerCount++;
+        }
+
+        if (towerCountText != null)
+            towerCountText.text = $"Tower: {currentTowerCount} / {maxTowerCount}";
+    }
+
+    public bool CanPlaceTower()
+    {
+        return currentTowerCount < maxTowerCount;
+    }
+
 }
 

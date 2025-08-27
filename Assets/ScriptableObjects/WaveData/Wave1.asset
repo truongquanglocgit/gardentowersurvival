@@ -17,7 +17,25 @@ MonoBehaviour:
   - startTime: 0
     spawnerId: s1
     enemyId: e1
-    count: 1
+    count: 10
+    interval: 1
+    powerMultiplier: 1
+  - startTime: 20
+    spawnerId: s1
+    enemyId: e2
+    count: 10
+    interval: 1
+    powerMultiplier: 1
+  - startTime: 30
+    spawnerId: s1
+    enemyId: e1
+    count: 5
+    interval: 1
+    powerMultiplier: 1
+  - startTime: 30
+    spawnerId: s1
+    enemyId: e2
+    count: 5
     interval: 1
     powerMultiplier: 1
   aliveCap: 60

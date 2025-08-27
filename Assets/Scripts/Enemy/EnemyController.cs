@@ -6,7 +6,7 @@ public class EnemyController : MonoBehaviour
     public float hp = 1;
     public float damage = 1;
     public float speed = 1;
-    public int goldReward = 1;
+    public int seedReward = 1;
 
     [Header("Combat Stats")]
     public float attackSpeed = 1f;
@@ -16,7 +16,12 @@ public class EnemyController : MonoBehaviour
 
     private bool isSlowed = false;
     private float originalSpeed;
+    public GameController gameController;
+    private void Start()
+    {
+        gameController = GameObject.FindWithTag("GameController").GetComponent<GameController>();
 
+    }
     void Update()
     {
         if (IsDead)
@@ -63,6 +68,7 @@ public class EnemyController : MonoBehaviour
     public void Die()
     {
         IsDead = true;
+        gameController.addSeed(seedReward);
         gameObject.SetActive(false);
     }
 
@@ -70,14 +76,16 @@ public class EnemyController : MonoBehaviour
     {
         hp *= powerMultiplier;
         damage *= powerMultiplier;
-        goldReward = Mathf.RoundToInt(goldReward * powerMultiplier);
+        seedReward = Mathf.RoundToInt(seedReward * powerMultiplier);
     }
 
     #region Status Effects
     public void ApplySlow(float slowFactor, float duration)
     {
+        Debug.Log("cbi slow");
         if (!isSlowed)
         {
+            Debug.Log("da slow");
             originalSpeed = speed;
             speed *= slowFactor;
             isSlowed = true;
@@ -120,7 +128,7 @@ public class EnemyController : MonoBehaviour
         float elapsed = 0f;
         while (elapsed < duration)
         {
-            TakeDamage(1f);
+            TakeDamage(5f);
             yield return new WaitForSeconds(interval);
             elapsed += interval;
         }

@@ -8,15 +8,21 @@ public class PlayerHealthUI : MonoBehaviour
 
     void Start()
     {
-        player = GameObject.FindWithTag("GameController").GetComponent<PlayerController>();
-        healthSlider.maxValue = player.Hp;
+        player = GameObject.FindWithTag("Player").GetComponent<PlayerController>();
+        if (player != null)
+        {
+            
+            healthSlider.maxValue = player.MaxHp;
+        }
+        
     }
 
     void Update()
     {
         if (player != null)
         {
-            healthSlider.value = player.Hp;
+            healthSlider.value = Mathf.Lerp(healthSlider.value, player.Hp, Time.deltaTime * 10f);
+
         }
     }
 }

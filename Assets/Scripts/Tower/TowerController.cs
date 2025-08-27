@@ -8,7 +8,10 @@ public class TowerController : MonoBehaviour
     public GameObject bulletObject; // Gắn sẵn trong prefab
     public Transform firePoint;
     public float minBulletSpeed = 15f; // tốc độ tối thiểu
-
+    public float minTowerDamage = 3f; 
+    public float maxTowerDamage = 3f; 
+    public float maxBulletSpeed = 15f; 
+    public float seedCost = 100;
     private Bullet bulletScript;
     private float fireCooldown = 0f;
     private Transform target;

@@ -2,10 +2,11 @@
 
 public class Bullet : MonoBehaviour
 {
-    public float speed = 20f;
-    public float damage = 5f;
+    
     private Transform target;
-
+    public TowerController towerController;
+    public float speed ;
+    public float damage ;
     private Rigidbody rb;
     private Transform firePoint; // điểm bắn ban đầu để reset về
 
@@ -13,6 +14,8 @@ public class Bullet : MonoBehaviour
 
     public void Start()
     {
+        speed = towerController.minBulletSpeed ;
+        damage = towerController.minTowerDamage ;
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;
         rb.useGravity = false;
@@ -52,6 +55,7 @@ public class Bullet : MonoBehaviour
             EnemyController enemy = other.GetComponent<EnemyController>();
             if (enemy != null)
             {
+                Hit();
                 enemy.TakeDamage(damage);
                 ResetBullet();
             }
@@ -65,6 +69,7 @@ public class Bullet : MonoBehaviour
         EnemyController enemy = target.GetComponent<EnemyController>();
         if (enemy != null)
         {
+            Debug.Log(bulletType);
             switch (bulletType)
             {
                 case BulletType.Normal:

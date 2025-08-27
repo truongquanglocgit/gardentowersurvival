@@ -6,6 +6,7 @@ public class TowerSlotButton : MonoBehaviour
 {
     public Image icon;
     public TMP_Text nameText;
+    public TMP_Text costText;
 
     private TowerData data;
     private System.Action<TowerData> onClick;
@@ -30,7 +31,8 @@ public class TowerSlotButton : MonoBehaviour
 
         if (nameText != null)
             nameText.text = data.displayName;
-
+        if (costText != null)
+            costText.text = data.cost.ToString();
         GetComponent<Button>().onClick.RemoveAllListeners();
         GetComponent<Button>().onClick.AddListener(() => onClick?.Invoke(data));
     }

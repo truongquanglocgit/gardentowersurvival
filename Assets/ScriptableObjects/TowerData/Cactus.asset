@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: Tomato
+  m_Name: Cactus
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
-  towerId: t1
-  displayName: Tomato
-  icon: {fileID: 21300000, guid: 446787242de9d864680656b2ad151bf6, type: 3}
-  cost: 0
+  towerId: t2
+  displayName: Cactus
+  icon: {fileID: 21300000, guid: 7b822953503c5f14abf9b6569f06b10b, type: 3}
+  cost: 100
   range: 5
   fireRate: 1
   damage: 10
-  prefab: {fileID: 8246720172038667037, guid: 990a2433234fa3f448921ab927d3c648, type: 3}
+  prefab: {fileID: 8246720172038667037, guid: 4633c1ef7562fa540905a126b8e182ad, type: 3}

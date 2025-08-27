@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: Cactus
+  m_Name: FireTower
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
-  towerId: t2
-  displayName: Cactus
-  icon: {fileID: 21300000, guid: 7b822953503c5f14abf9b6569f06b10b, type: 3}
-  cost: 0
+  towerId: t4
+  displayName: Fire Chili
+  icon: {fileID: 21300000, guid: d3f5c16958221234e83529a75b44e4fb, type: 3}
+  cost: 150
   range: 5
   fireRate: 1
   damage: 10
-  prefab: {fileID: 8246720172038667037, guid: 4633c1ef7562fa540905a126b8e182ad, type: 3}
+  prefab: {fileID: 8246720172038667037, guid: fcb849fb9de89424bb2f413d825fc0d7, type: 3}

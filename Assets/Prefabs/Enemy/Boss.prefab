@@ -135,12 +135,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d4a65b062766ae48a94c5eb2c796216, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hp: 1000
+  hp: 500
   damage: 100
   speed: 2
-  goldReward: 1000
+  seedReward: 1000
   attackSpeed: 1
   attackRange: 5
+  gameController: {fileID: 0}
 --- !u!54 &52961755890321689
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -180,4 +181,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 28f4418f4e47ffd478c7682d3da49bcd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerController: {fileID: 1987699360995893568, guid: c85f9524025490440ad9e7de50a10f84, type: 3}
