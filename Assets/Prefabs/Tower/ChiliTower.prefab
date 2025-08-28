@@ -47,6 +47,7 @@ GameObject:
   - component: {fileID: 634705499189157085}
   - component: {fileID: 8436264965044154250}
   - component: {fileID: -8375645251397838461}
+  - component: {fileID: 4164569094419866126}
   m_Layer: 3
   m_Name: ChiliTower
   m_TagString: Tower
@@ -166,10 +167,27 @@ MonoBehaviour:
   bulletObject: {fileID: 3844644262140059456}
   firePoint: {fileID: 2617662252324067974}
   minBulletSpeed: 30
+  maxBulletSpeed: 30
   minTowerDamage: 5
   maxTowerDamage: 50
-  maxBulletSpeed: 30
+  minRange: 5
+  maxRange: 8
+  minFireRate: 1
+  maxFireRate: 2
   seedCost: 150
+  sellRoti: 0.4
+  upgradeRoti: 0.8
+  towerName: Tomato
+  Level: 1
+  MaxLevel: 3
+  damageLevels: []
+  rangeLevels: []
+  atkSpeedLevels: []
+  TargetingMode: 0
+  debugTargeting: 0
+  retargetInterval: 0.15
+  previewSprite: {fileID: 21300000, guid: d3f5c16958221234e83529a75b44e4fb, type: 3}
+  bullet: {fileID: 7573319403906747944}
 --- !u!54 &-8375645251397838461
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -197,6 +215,19 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 80
   m_CollisionDetection: 0
+--- !u!114 &4164569094419866126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8246720172038667037}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1f4d24c6cde5e44ba3c801b9f0b3218, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tower: {fileID: 8436264965044154250}
 --- !u!1001 &1569412698063908545
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -276,3 +307,14 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2350112777056301441, guid: 7ef570c25cc7e4c4babc3cf5b5529881, type: 3}
   m_PrefabInstance: {fileID: 1569412698063908545}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7573319403906747944 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: -225609513288769303, guid: 7ef570c25cc7e4c4babc3cf5b5529881, type: 3}
+  m_PrefabInstance: {fileID: 1569412698063908545}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3844644262140059456}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9533dcd5fc4e1714ebe8075f3731fc0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

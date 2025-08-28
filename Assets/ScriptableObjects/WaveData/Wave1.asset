@@ -15,28 +15,16 @@ MonoBehaviour:
   waveName: Wave 1
   items:
   - startTime: 0
-    spawnerId: s1
+    spawnerId: s2
     enemyId: e1
     count: 10
-    interval: 1
+    interval: 2
     powerMultiplier: 1
-  - startTime: 20
-    spawnerId: s1
-    enemyId: e2
-    count: 10
-    interval: 1
-    powerMultiplier: 1
-  - startTime: 30
-    spawnerId: s1
-    enemyId: e1
-    count: 5
-    interval: 1
-    powerMultiplier: 1
-  - startTime: 30
-    spawnerId: s1
-    enemyId: e2
-    count: 5
-    interval: 1
+  - startTime: 0
+    spawnerId: s2
+    enemyId: boss
+    count: 1
+    interval: 2
     powerMultiplier: 1
   aliveCap: 60
   interWaveDelay: 5

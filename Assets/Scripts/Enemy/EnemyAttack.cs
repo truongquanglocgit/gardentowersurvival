@@ -29,6 +29,7 @@ public class EnemyAttack : MonoBehaviour
                 var playerControllerComponent = player.GetComponent<PlayerController>();
                 if (playerControllerComponent != null)
                 {
+                    Debug.Log("take dame"+ controller.damage);
                     playerControllerComponent.TakeDamage(Mathf.RoundToInt(controller.damage));
                     lastAttackTime = Time.time;
                     

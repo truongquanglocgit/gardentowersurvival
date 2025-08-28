@@ -12,12 +12,32 @@ public class GameController : MonoBehaviour
     [SerializeField] private Transform playerSpawnPoint;
     private TowerSelectUI towerSelectUI;
     public TMPro.TextMeshProUGUI seedText;
-    public float Seed = 100;
+    public int Seed = 100;
     [Header("Tower Limit")]
     public int maxTowerCount = 20;
     public TMPro.TextMeshProUGUI towerCountText;
 
     [HideInInspector] public int currentTowerCount;
+    public static GameController Instance;
+
+    void Awake() => Instance = this;
+
+    public bool TrySpendSeed(int amount)
+    {
+        if (Seed >= amount)
+        {
+            Seed -= amount;
+            // TODO: cập nhật HUD seed
+            return true;
+        }
+        return false;
+    }
+
+    public void AddSeed(int amount)
+    {
+        Seed += amount;
+        // TODO: cập nhật HUD seed
+    }
     void Start()
     {
 
@@ -57,7 +77,7 @@ public class GameController : MonoBehaviour
     }
 
 
-    public void addSeed( float seed)
+    public void addSeed( int seed)
     {
         Seed += seed;
     }

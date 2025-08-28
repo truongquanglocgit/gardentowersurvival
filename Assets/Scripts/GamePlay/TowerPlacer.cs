@@ -14,7 +14,7 @@ public class TowerPlacer : MonoBehaviour
     private TowerData currentTower;
     private GameObject previewTower;
     private bool isPlacing = false;
-    private bool warnedInsufficientSeed = false;
+    //private bool warnedInsufficientSeed = false;
     private Coroutine warningCoroutine;
 
     void Awake()
@@ -48,7 +48,7 @@ public class TowerPlacer : MonoBehaviour
 
     public void SetCurrentTower(TowerData data)
     {
-        Debug.Log("🔧 SetCurrentTower called: " + data.name);
+        //Debug.Log("🔧 SetCurrentTower called: " + data.name);
 
         currentTower = data;
         StartPlacing();

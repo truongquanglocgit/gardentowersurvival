@@ -47,6 +47,7 @@ GameObject:
   - component: {fileID: 634705499189157085}
   - component: {fileID: 8436264965044154250}
   - component: {fileID: -8375645251397838461}
+  - component: {fileID: -6674614518254681396}
   m_Layer: 3
   m_Name: ScareCrowTower
   m_TagString: Tower
@@ -166,10 +167,27 @@ MonoBehaviour:
   bulletObject: {fileID: 8981423526162760515}
   firePoint: {fileID: 2617662252324067974}
   minBulletSpeed: 30
+  maxBulletSpeed: 15
   minTowerDamage: 5
   maxTowerDamage: 50
-  maxBulletSpeed: 15
+  minRange: 5
+  maxRange: 8
+  minFireRate: 1
+  maxFireRate: 2
   seedCost: 150
+  sellRoti: 0.4
+  upgradeRoti: 0.8
+  towerName: Tomato
+  Level: 1
+  MaxLevel: 3
+  damageLevels: []
+  rangeLevels: []
+  atkSpeedLevels: []
+  TargetingMode: 0
+  debugTargeting: 0
+  retargetInterval: 0.15
+  previewSprite: {fileID: 21300000, guid: a3f243e6a1b0f0448a2d2e9f25fbc81e, type: 3}
+  bullet: {fileID: 2370955356637614635}
 --- !u!54 &-8375645251397838461
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -197,6 +215,19 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 80
   m_CollisionDetection: 0
+--- !u!114 &-6674614518254681396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8246720172038667037}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1f4d24c6cde5e44ba3c801b9f0b3218, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tower: {fileID: 8436264965044154250}
 --- !u!1001 &6645388913454658242
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -274,6 +305,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0d430b123f80d1641b4e7f1b37e72a18, type: 3}
+--- !u!114 &2370955356637614635 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: -225609513288769303, guid: 0d430b123f80d1641b4e7f1b37e72a18, type: 3}
+  m_PrefabInstance: {fileID: 6645388913454658242}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8981423526162760515}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9533dcd5fc4e1714ebe8075f3731fc0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &6834022088069428401 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 211239151272822387, guid: 0d430b123f80d1641b4e7f1b37e72a18, type: 3}

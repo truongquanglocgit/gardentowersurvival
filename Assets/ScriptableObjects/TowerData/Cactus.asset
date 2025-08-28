@@ -17,6 +17,6 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 7b822953503c5f14abf9b6569f06b10b, type: 3}
   cost: 100
   range: 5
-  fireRate: 1
+  fireRate: 3
   damage: 10
   prefab: {fileID: 8246720172038667037, guid: 4633c1ef7562fa540905a126b8e182ad, type: 3}
