@@ -14,13 +14,16 @@ public class Bullet : MonoBehaviour
 
     public void Start()
     {
-        speed = towerController.minBulletSpeed ;
-        damage = towerController.minTowerDamage ;
+        GetStat();
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;
         rb.useGravity = false;
     }
-
+    public void GetStat()
+    {
+        speed = towerController.minBulletSpeed;
+        damage = towerController.CurrentDamage;
+    }
     public void SetTarget(Transform t, Transform fireOrigin)
     {
         target = t;
@@ -69,7 +72,7 @@ public class Bullet : MonoBehaviour
         EnemyController enemy = target.GetComponent<EnemyController>();
         if (enemy != null)
         {
-            Debug.Log(bulletType);
+            
             switch (bulletType)
             {
                 case BulletType.Normal:
@@ -77,18 +80,22 @@ public class Bullet : MonoBehaviour
                     break;
                 case BulletType.Fire:
                     enemy.TakeDamage(damage);
-                    enemy.ApplyBurn(5f, 1f);
+                    if (enemy.isActiveAndEnabled) { enemy.ApplyBurn(5f, 1f); }
+                    
                     break;
                 case BulletType.Ice:
                     enemy.TakeDamage(damage);
-                    enemy.ApplySlow(0.5f, 2f);
+                    if (enemy.isActiveAndEnabled) { enemy.ApplySlow(0.5f, 2f); }
+                    
                     break;
                 case BulletType.Poison:
-                    enemy.ApplyPoison(3f, 1f, 1f);
+                    if (enemy.isActiveAndEnabled) { enemy.ApplyPoison(3f, 1f, 1f); }
+                    
                     break;
                 case BulletType.Stun:
                     enemy.TakeDamage(damage);
-                    enemy.ApplyStun(2f);
+                    if (enemy.isActiveAndEnabled) { enemy.ApplyStun(2f); }
+                    
                     break;
             }
         }

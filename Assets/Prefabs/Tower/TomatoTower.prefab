@@ -47,6 +47,7 @@ GameObject:
   - component: {fileID: 634705499189157085}
   - component: {fileID: 8436264965044154250}
   - component: {fileID: -8375645251397838461}
+  - component: {fileID: 3557592806582140603}
   m_Layer: 3
   m_Name: TomatoTower
   m_TagString: Tower
@@ -166,10 +167,27 @@ MonoBehaviour:
   bulletObject: {fileID: 6043100686744096536}
   firePoint: {fileID: 2617662252324067974}
   minBulletSpeed: 30
-  minTowerDamage: 5
-  maxTowerDamage: 5
   maxBulletSpeed: 30
+  minTowerDamage: 5
+  maxTowerDamage: 20
+  minRange: 5
+  maxRange: 20
+  minFireRate: 1
+  maxFireRate: 3
   seedCost: 50
+  sellRoti: 0.4
+  upgradeRoti: 0.8
+  towerName: Tomato
+  Level: 1
+  MaxLevel: 3
+  damageLevels: []
+  rangeLevels: []
+  atkSpeedLevels: []
+  TargetingMode: 0
+  debugTargeting: 0
+  retargetInterval: 0.15
+  previewSprite: {fileID: 21300000, guid: 446787242de9d864680656b2ad151bf6, type: 3}
+  bullet: {fileID: 1125431823249727088}
 --- !u!54 &-8375645251397838461
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -197,6 +215,19 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 80
   m_CollisionDetection: 0
+--- !u!114 &3557592806582140603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8246720172038667037}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1f4d24c6cde5e44ba3c801b9f0b3218, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tower: {fileID: 8436264965044154250}
 --- !u!1001 &8304689458733727385
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -266,6 +297,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0a959e5fcd4ccd441bbadaee58252ce2, type: 3}
+--- !u!114 &1125431823249727088 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: -225609513288769303, guid: 0a959e5fcd4ccd441bbadaee58252ce2, type: 3}
+  m_PrefabInstance: {fileID: 8304689458733727385}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6043100686744096536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9533dcd5fc4e1714ebe8075f3731fc0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6043100686744096536 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2350112777056301441, guid: 0a959e5fcd4ccd441bbadaee58252ce2, type: 3}

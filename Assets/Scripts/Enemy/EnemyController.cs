@@ -82,10 +82,10 @@ public class EnemyController : MonoBehaviour
     #region Status Effects
     public void ApplySlow(float slowFactor, float duration)
     {
-        Debug.Log("cbi slow");
+        
         if (!isSlowed)
         {
-            Debug.Log("da slow");
+            
             originalSpeed = speed;
             speed *= slowFactor;
             isSlowed = true;

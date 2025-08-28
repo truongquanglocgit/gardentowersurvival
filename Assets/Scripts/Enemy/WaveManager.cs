@@ -43,20 +43,20 @@ public class WaveManager : MonoBehaviour
         }
 
         yield return new WaitUntil(() => WaveRuntime.AliveCount <= 0);
-        Debug.Log($"✅ Wave {waveDef.waveName} đã hoàn thành.");
+        //Debug.Log($"✅ Wave {waveDef.waveName} đã hoàn thành.");
     }
 
     IEnumerator SpawnGroup(SpawnItem item)
     {
         if (!SpawnerRegistry.Instance.TryGet(item.spawnerId, out var spawner))
         {
-            Debug.LogError($"❌ Không tìm thấy SpawnerId = {item.spawnerId}");
+            //Debug.LogError($"❌ Không tìm thấy SpawnerId = {item.spawnerId}");
             yield break;
         }
 
         if (!enemyMap.TryGetValue(item.enemyId, out var enemyData))
         {
-            Debug.LogError($"❌ Không tìm thấy enemyId = {item.enemyId}");
+            //Debug.LogError($"❌ Không tìm thấy enemyId = {item.enemyId}");
             yield break;
         }
 
@@ -125,12 +125,12 @@ public class WaveManager : MonoBehaviour
 
             if (!enemyMap.TryGetValue(enemyId, out var enemyData))
             {
-                Debug.LogError($"❌ Không tìm thấy EnemyData cho enemyId = {enemyId}");
+                //Debug.LogError($"❌ Không tìm thấy EnemyData cho enemyId = {enemyId}");
                 continue;
             }
 
             PoolManager.I.WarmUp(enemyData.prefab, count);
-            Debug.Log($"📦 Pool sẵn {count} con enemy [{enemyId}]");
+            //Debug.Log($"📦 Pool sẵn {count} con enemy [{enemyId}]");
         }
     }
 }
