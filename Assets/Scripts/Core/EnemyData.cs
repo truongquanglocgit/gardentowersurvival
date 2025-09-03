@@ -29,6 +29,16 @@ public class WaveDef : ScriptableObject
     public int aliveCap = 60;          // backpressure limit
     public float interWaveDelay = 5f;  // delay sau wave (GameController dùng)
 }
+public enum Rarity
+{
+    Common,
+    Uncommon,
+    Rare,
+    Epic,
+    Legendary,
+    Mythic,
+    Void
+}
 [CreateAssetMenu(menuName = "TD/TowerData")]
 public class TowerData : ScriptableObject
 {
@@ -36,7 +46,7 @@ public class TowerData : ScriptableObject
     public string towerId;
     public string displayName;
     public Sprite icon;
-
+    public Rarity rarity;
     [Header("Stats")]
     public int cost;
     public float range = 5f;
@@ -46,3 +56,10 @@ public class TowerData : ScriptableObject
     [Header("Gameplay")]
     public GameObject prefab;
 }
+[CreateAssetMenu(menuName = "TD/Tower Rarity Group")]
+public class TowerRarityGroup : ScriptableObject
+{
+    public string rarityName; // Common, Rare,...
+    public List<TowerData> towerList;
+}
+
