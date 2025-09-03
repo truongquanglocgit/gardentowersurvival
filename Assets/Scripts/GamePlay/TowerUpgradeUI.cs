@@ -83,8 +83,8 @@ public class TowerUpgradeUI : MonoBehaviour
         int upCost = current.GetUpgradeCost();
         int sellVal = current.GetSellPrice();
 
-        if (txtUpgradePrice) txtUpgradePrice.text = current.CanUpgrade ? $"Upgrade: 🌱{upCost}" : "Max Level";
-        if (txtSellPrice) txtSellPrice.text = $"Sell: +🌱{sellVal}";
+        if (txtUpgradePrice) txtUpgradePrice.text = current.CanUpgrade ? $"Upgrade: {upCost}" : "Max Level";
+        if (txtSellPrice) txtSellPrice.text = $"Sell: +{sellVal}";
         if (btnUpgrade) btnUpgrade.interactable = current.CanUpgrade && GameController.Instance.Seed >= upCost;
     }
 

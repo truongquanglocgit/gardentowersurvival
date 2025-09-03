@@ -169,7 +169,7 @@ MonoBehaviour:
   minBulletSpeed: 30
   maxBulletSpeed: 30
   minTowerDamage: 4
-  maxTowerDamage: 40
+  maxTowerDamage: 20
   minRange: 5
   maxRange: 10
   minFireRate: 3
@@ -177,6 +177,7 @@ MonoBehaviour:
   seedCost: 100
   sellRoti: 0.4
   upgradeRoti: 0.8
+  currentValue: 0
   towerName: Tomato
   Level: 1
   MaxLevel: 3

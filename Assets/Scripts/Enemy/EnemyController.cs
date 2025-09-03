@@ -3,6 +3,7 @@ using System.Collections;
 
 public class EnemyController : MonoBehaviour
 {
+    [Header("Base Stats")]
     public float hp = 1;
     public float damage = 1;
     public float speed = 1;
@@ -10,25 +11,34 @@ public class EnemyController : MonoBehaviour
 
     [Header("Combat Stats")]
     public float attackSpeed = 1f;
-    public float attackRange = 2f; // Dừng di chuyển khi ở trong tầm này
+    public float attackRange = 2f; // Dừng di chuyển khi trong tầm
 
     public bool IsDead { get; private set; } = false;
 
+    private bool _countedDown;       // đảm bảo AliveCount trừ 1 lần
+    private bool _inWaveLifetime;    // ✅ chỉ true khi spawn trong wave
+
     private bool isSlowed = false;
     private float originalSpeed;
-    public GameController gameController;
-    private void Start()
-    {
-        gameController = GameObject.FindWithTag("GameController").GetComponent<GameController>();
 
+    private GameController gameController;
+
+    void OnEnable()
+    {
+        _countedDown = false;
+        _inWaveLifetime = false;   // mặc định false → chỉ WaveManager set true
+        IsDead = false;
     }
+
+    void Start()
+    {
+        gameController = GameObject.FindWithTag("GameController")
+            .GetComponent<GameController>();
+    }
+
     void Update()
     {
-        if (IsDead)
-        {
-            //Debug.Log($"{gameObject.name} is dead — skipping movement.");
-            return;
-        }
+        if (IsDead) return;
 
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj == null)
@@ -38,38 +48,62 @@ public class EnemyController : MonoBehaviour
         }
 
         float distance = Vector3.Distance(transform.position, playerObj.transform.position);
-        //Debug.Log($"📏 Distance to Player: {distance} | attackRange = {attackRange}");
 
         if (distance > attackRange)
         {
             Vector3 dir = (playerObj.transform.position - transform.position).normalized;
             transform.position += dir * speed * Time.deltaTime;
-            //Debug.Log("➡️ Moving towards player");
         }
         else
         {
             Vector3 lookDir = (playerObj.transform.position - transform.position).normalized;
             if (lookDir != Vector3.zero)
-            {
                 transform.forward = Vector3.Lerp(transform.forward, lookDir, Time.deltaTime * 10f);
-            }
-            //Debug.Log("🛑 Player in attack range, stopping movement");
         }
     }
 
+    // ✅ gọi ngay sau khi SpawnEnemy trong WaveManager
+    public void BeginWaveLifetime()
+    {
+        _inWaveLifetime = true;
+        // Debug.Log($"[EnemyController] BeginWaveLifetime for {name}");
+    }
 
     public void TakeDamage(float dmg)
     {
         hp -= dmg;
-        //Debug.Log($"🟥 Enemy HP: {hp}");
         if (hp <= 0f) Die();
     }
 
     public void Die()
     {
+        if (IsDead) return;
+
         IsDead = true;
-        gameController.addSeed(seedReward);
+        gameController.AddSeed(seedReward);
+        TryCountDownAlive();
         gameObject.SetActive(false);
+    }
+
+    void OnDisable()
+    {
+        // Nếu bị tắt không qua Die() (despawn cưỡng bức, rơi map)
+        if (gameObject.scene.IsValid())
+            TryCountDownAlive();
+    }
+
+    private void TryCountDownAlive()
+    {
+        // ⛔ chỉ tính nếu thực sự là enemy trong wave
+        if (!_inWaveLifetime) return;
+        if (_countedDown) return;
+
+        WaveRuntime.AliveCount = Mathf.Max(0, WaveRuntime.AliveCount - 1);
+        _countedDown = true;
+        _inWaveLifetime = false;
+
+        Debug.Log($"[EnemyController] Enemy died. AliveCount={WaveRuntime.AliveCount}");
+        WaveRuntime.NotifyEnemyDied();
     }
 
     public void Init(float powerMultiplier)
@@ -82,10 +116,8 @@ public class EnemyController : MonoBehaviour
     #region Status Effects
     public void ApplySlow(float slowFactor, float duration)
     {
-        
         if (!isSlowed)
         {
-            
             originalSpeed = speed;
             speed *= slowFactor;
             isSlowed = true;

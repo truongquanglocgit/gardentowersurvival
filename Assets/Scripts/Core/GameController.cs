@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -7,94 +6,102 @@ using UnityEngine.SceneManagement;
 public class GameController : MonoBehaviour
 {
     public WaveManager waveManager;
+    public TowerLoadoutManager towerManager;
     public GameObject dieCanvas;
+
     [SerializeField] private Transform player;
     [SerializeField] private Transform playerSpawnPoint;
     private TowerSelectUI towerSelectUI;
+
     public TMPro.TextMeshProUGUI seedText;
     public int Seed = 100;
+
     [Header("Tower Limit")]
     public int maxTowerCount = 20;
     public TMPro.TextMeshProUGUI towerCountText;
-
     [HideInInspector] public int currentTowerCount;
+
     public static GameController Instance;
 
     void Awake() => Instance = this;
 
-    public bool TrySpendSeed(int amount)
-    {
-        if (Seed >= amount)
-        {
-            Seed -= amount;
-            // TODO: cập nhật HUD seed
-            return true;
-        }
-        return false;
-    }
-
-    public void AddSeed(int amount)
-    {
-        Seed += amount;
-        // TODO: cập nhật HUD seed
-    }
     void Start()
     {
-
-        UpdateTowerCount();
-        StartCoroutine(waveManager.PlayWave());
         dieCanvas.SetActive(false);
+
+        // ✅ Load wave từ GameSession
+        var waveList = GameSession.Instance.selectedWaveList;
+
+        // ✅ Load tower đã equip từ PlayerData thông qua AllTowerDatabase
+        towerManager.LoadEquippedFromPlayerData(GameSession.Instance.allTowerDatabase.allTowers);
+
+        // ✅ Gán vào UI
+        towerSelectUI = FindObjectOfType<TowerSelectUI>();
+        if (towerSelectUI != null)
+            towerSelectUI.InitTowerButtons(towerManager.equippedTowers);
+        else
+            Debug.LogWarning("TowerSelectUI not found");
+
+        // ✅ Load waves
+        waveManager.LoadWaves(waveList);
+        StartCoroutine(waveManager.PlayWaves());
+
+        // ✅ Set player position
         if (player != null && playerSpawnPoint != null)
         {
             player.position = playerSpawnPoint.position;
-            player.rotation = playerSpawnPoint.rotation; // nếu cần quay đúng hướng
+            player.rotation = playerSpawnPoint.rotation;
         }
 
-        // Gán player vào camera follow
+        // ✅ Set camera follow
         Camera.main.GetComponent<CameraOrbit>().target = player.transform;
     }
-    
 
     void Update()
     {
         seedText.text = $"Seed: {Seed}";
     }
 
-    internal void die()
+    public bool TrySpendSeed(int amount)
+    {
+        if (Seed >= amount)
+        {
+            Seed -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    public void AddSeed(int amount) => Seed += amount;
+
+    public void die()
     {
         Time.timeScale = 0;
-        Debug.Log("die");
+        Debug.Log(" Player Died");
 
         if (dieCanvas != null)
         {
             dieCanvas.SetActive(true);
-            Debug.Log("Canvas enabled");
         }
         else
         {
-            Debug.LogError("❌ dieCanvas is NULL. Check inspector reference!");
+            Debug.LogError(" dieCanvas is NULL. Check inspector reference!");
         }
     }
 
-
-    public void addSeed( int seed)
-    {
-        Seed += seed;
-    }
     public void TryAgain()
     {
-        Time.timeScale = 1f; // 🔁 Khôi phục tốc độ game nếu đang bị dừng
-        Scene currentScene = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(currentScene.buildIndex); // 🔄 Load lại scene hiện tại
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
+
     public void UpdateTowerCount()
     {
-        GameObject[] towers = GameObject.FindGameObjectsWithTag("Tower");
         currentTowerCount = 0;
+        GameObject[] towers = GameObject.FindGameObjectsWithTag("Tower");
 
         foreach (var tower in towers)
         {
-            
             if (tower.activeInHierarchy)
                 currentTowerCount++;
         }
@@ -107,6 +114,4 @@ public class GameController : MonoBehaviour
     {
         return currentTowerCount < maxTowerCount;
     }
-
 }
-
