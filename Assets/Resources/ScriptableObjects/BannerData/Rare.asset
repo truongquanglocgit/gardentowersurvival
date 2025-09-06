@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Rare
+  m_EditorClassIdentifier: Assembly-CSharp::TowerRarityGroup
+  rarityName: Rare
+  towerList:
+  - {fileID: 11400000, guid: 1031148100e477640b09cf0c67f811f0, type: 2}
+  - {fileID: 11400000, guid: 462a4337dd2d421429777d31bc5895b9, type: 2}

@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using TMPro;
 using System.Collections;
+using UnityEngine.UI;
 
 public class TowerPlacer : MonoBehaviour
 {
@@ -9,120 +10,137 @@ public class TowerPlacer : MonoBehaviour
     [Header("Config")]
     public LayerMask groundMask;
     public Material ghostMaterial;
+    public Material rangeRingMaterial;   // optional, để trống sẽ dùng Sprites/Default
+    public float previewDistance = 2.0f; // khoảng cách trước mặt player
+    public float ringWidth = 0.05f;
+    public int ringSegments = 64;
+    public float ringYOffset = 0.03f;
+
+    [Header("UI")]
     public TextMeshProUGUI notEnoughSeedText;
+    public Button cancelPlacement;
+    public Button placeButton;
+    public TextMeshProUGUI placeButtonText;
 
     private TowerData currentTower;
     private GameObject previewTower;
+    private LineRenderer rangeRing;
     private bool isPlacing = false;
-    //private bool warnedInsufficientSeed = false;
     private Coroutine warningCoroutine;
+
+    Transform player;
 
     void Awake()
     {
         I = this;
-        Debug.Log("✅ TowerPlacer Awake – Singleton set.");
-        if (notEnoughSeedText != null)
-            notEnoughSeedText.gameObject.SetActive(false);
+
+        var p = GameObject.FindWithTag("Player");
+        if (p) player = p.transform;
+
+        if (cancelPlacement) { cancelPlacement.gameObject.SetActive(false); cancelPlacement.onClick.AddListener(CancelPlacement); }
+        if (placeButton)
+        {
+            placeButton.gameObject.SetActive(false);
+            placeButton.onClick.AddListener(PlaceFromPreview);
+        }
+        if (notEnoughSeedText) notEnoughSeedText.gameObject.SetActive(false);
     }
 
     void Update()
     {
         if (!isPlacing || previewTower == null) return;
 
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f, groundMask))
-        {
-            previewTower.transform.position = hit.point;
+        // Preview KHÔNG theo chuột — bám trước mặt player & dán xuống ground
+        FollowPlayerAnchor();
 
-            if (Input.GetMouseButtonDown(0))
-            {
-                PlaceTower(hit.point);
-            }
-        }
-
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            CancelPlacement();
-        }
+        // Cập nhật trạng thái nút Place (đủ tiền/chưa max)
+        UpdatePlaceButtonState();
     }
 
     public void SetCurrentTower(TowerData data)
     {
-        //Debug.Log("🔧 SetCurrentTower called: " + data.name);
-
         currentTower = data;
         StartPlacing();
     }
 
     void StartPlacing()
     {
-        CancelPlacement();
-
+        CancelPlacement(); // clear phiên trước
         if (currentTower == null || currentTower.prefab == null) return;
 
+        if (cancelPlacement) cancelPlacement.gameObject.SetActive(true);
+        if (placeButton) placeButton.gameObject.SetActive(true);
+
+        // tạo preview
         previewTower = Instantiate(currentTower.prefab);
         previewTower.name = "Preview_" + currentTower.name;
-
         MakeGhost(previewTower);
+        CreateOrUpdateRangeRing();
+
         isPlacing = true;
+        UpdatePlaceButtonState();
+    }
+
+    void PlaceFromPreview()
+    {
+        if (!isPlacing || previewTower == null) return;
+        Vector3 pos = GetGroundPoint(previewTower.transform.position);
+        PlaceTower(pos);
     }
 
     void PlaceTower(Vector3 pos)
     {
         if (currentTower == null || currentTower.prefab == null) return;
 
-        TowerController towerCtrl = currentTower.prefab.GetComponent<TowerController>();
-        if (towerCtrl == null) return;
+        // lấy cost từ loại controller nào có
+        int cost = GetSeedCost(currentTower.prefab);
+        GameController gc = FindObjectOfType<GameController>();
 
-        int cost = Mathf.RoundToInt(towerCtrl.seedCost);
-        GameController gameController = FindObjectOfType<GameController>();
-
-        if (gameController.Seed < cost)
+        if (gc.Seed < cost)
         {
             ShowSeedWarning($"Not enough Seed! Need {cost}");
             return;
         }
-
-        if (!gameController.CanPlaceTower())
+        if (!gc.CanPlaceTower())
         {
             ShowSeedWarning("🚫 Max towers placed!");
             return;
         }
 
         // ✅ Place
-        gameController.Seed -= cost;
+        gc.Seed -= cost;
         pos.y += 0.2f;
         Instantiate(currentTower.prefab, pos, Quaternion.identity);
-        gameController.UpdateTowerCount();
+        gc.UpdateTowerCount();
 
         CancelPlacement();
     }
 
-    void CancelPlacement()
+    public void CancelPlacement()
     {
-        if (previewTower != null)
-            Destroy(previewTower);
-
+        if (previewTower) Destroy(previewTower);
+        if (rangeRing) Destroy(rangeRing.gameObject);
+        if (cancelPlacement) cancelPlacement.gameObject.SetActive(false);
+        if (placeButton) placeButton.gameObject.SetActive(false);
         isPlacing = false;
     }
 
     void MakeGhost(GameObject obj)
     {
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
-        {
-            Vector3 offset = player.transform.forward * 2f;
-            obj.transform.position = player.transform.position + offset;
-            obj.transform.rotation = Quaternion.identity;
-        }
+        FollowPlayerAnchor(obj.transform);
 
+        // đổi material ghost
         foreach (var r in obj.GetComponentsInChildren<Renderer>())
             r.material = ghostMaterial;
 
+        // tránh cản ray/tap
         obj.layer = LayerMask.NameToLayer("Ignore Raycast");
 
-        TowerController ctrl = obj.GetComponent<TowerController>();
-        if (ctrl != null) ctrl.enabled = false;
+        // tắt logic chiến đấu của tower ghost (cả range lẫn melee)
+        var ranged = obj.GetComponent<TowerController>();
+        if (ranged) ranged.enabled = false;
+        var melee = obj.GetComponent<MeleeTowerController>();
+        if (melee) melee.enabled = false;
 
         foreach (var col in obj.GetComponentsInChildren<Collider>())
             col.enabled = false;
@@ -130,6 +148,105 @@ public class TowerPlacer : MonoBehaviour
         obj.tag = "Untagged";
     }
 
+    void FollowPlayerAnchor(Transform t = null)
+    {
+        if (!player) return;
+        if (t == null) t = previewTower.transform;
+
+        Vector3 target = player.position + player.forward * previewDistance;
+        t.position = GetGroundPoint(target);
+        t.rotation = Quaternion.LookRotation(player.forward, Vector3.up);
+    }
+
+    Vector3 GetGroundPoint(Vector3 around)
+    {
+        Vector3 origin = around + Vector3.up * 5f;
+        if (Physics.Raycast(origin, Vector3.down, out var hit, 20f, groundMask))
+            return hit.point + Vector3.up * 0.01f;
+        return around;
+    }
+
+    void CreateOrUpdateRangeRing()
+    {
+        if (!previewTower) return;
+
+        float radius = GetPreviewRange(previewTower); // đọc range từ controller phù hợp
+
+        if (rangeRing) Destroy(rangeRing.gameObject);
+
+        var go = new GameObject("RangeRing");
+        go.transform.SetParent(previewTower.transform, false);
+        go.transform.localPosition = new Vector3(0f, ringYOffset, 0f);
+
+        rangeRing = go.AddComponent<LineRenderer>();
+        rangeRing.loop = true;
+        rangeRing.useWorldSpace = false;
+        rangeRing.alignment = LineAlignment.View;
+        rangeRing.startWidth = ringWidth;
+        rangeRing.endWidth = ringWidth;
+        rangeRing.numCapVertices = 4;
+        rangeRing.numCornerVertices = 4;
+        rangeRing.material = rangeRingMaterial != null ? rangeRingMaterial : new Material(Shader.Find("Sprites/Default"));
+
+        int n = Mathf.Max(16, ringSegments);
+        rangeRing.positionCount = n;
+        for (int i = 0; i < n; i++)
+        {
+            float a = i * Mathf.PI * 2f / n;
+            rangeRing.SetPosition(i, new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius));
+        }
+    }
+
+    void UpdatePlaceButtonState()
+    {
+        if (!placeButton) return;
+
+        bool interact = false;
+        string label = "Place";
+
+        var gc = FindObjectOfType<GameController>();
+        if (currentTower && currentTower.prefab && gc)
+        {
+            int cost = GetSeedCost(currentTower.prefab);
+            bool enoughSeed = gc.Seed >= cost;
+            bool canPlace = gc.CanPlaceTower();
+
+            interact = enoughSeed && canPlace;
+            if (placeButtonText)
+                label = enoughSeed ? $"Place (-{cost})" : $"Need {cost}";
+        }
+
+        placeButton.interactable = interact;
+        if (placeButtonText) placeButtonText.text = label;
+    }
+
+    // ===== Helpers: hỗ trợ cả melee và ranged =====
+    int GetSeedCost(GameObject prefab)
+    {
+        var r = prefab.GetComponent<TowerController>();
+        if (r) return Mathf.RoundToInt(r.seedCost);
+        var m = prefab.GetComponent<MeleeTowerController>();
+        if (m) return Mathf.RoundToInt(m.seedCost);
+        return 0;
+    }
+
+    float GetPreviewRange(GameObject obj)
+    {
+        // ưu tiên GetRangeAtLevel(1) nếu có, fallback CurrentRange
+        var r = obj.GetComponent<TowerController>();
+        if (r)
+        {
+            try { return r.GetRangeAtLevel(1); } catch { return Mathf.Max(1f, r.CurrentRange); }
+        }
+        var m = obj.GetComponent<MeleeTowerController>();
+        if (m)
+        {
+            try { return m.GetRangeAtLevel(1); } catch { return Mathf.Max(1f, m.CurrentRange); }
+        }
+        return 2f;
+    }
+
+    // ===== UI warning =====
     void ShowSeedWarning(string message)
     {
         if (notEnoughSeedText == null) return;
@@ -146,7 +263,6 @@ public class TowerPlacer : MonoBehaviour
 
         Vector3 originalPos = notEnoughSeedText.rectTransform.localPosition;
 
-        // Shake
         for (int i = 0; i < 8; i++)
         {
             float offset = (i % 2 == 0 ? 1 : -1) * 8f;
@@ -156,7 +272,6 @@ public class TowerPlacer : MonoBehaviour
 
         notEnoughSeedText.rectTransform.localPosition = originalPos;
 
-        // Fade out
         float duration = 0.8f;
         float timer = 0f;
         while (timer < duration)

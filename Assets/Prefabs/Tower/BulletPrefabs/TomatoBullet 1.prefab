@@ -146,6 +146,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9533dcd5fc4e1714ebe8075f3731fc0e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  towerController: {fileID: 0}
   speed: 50
-  damage: 5
+  damage: 0
   bulletType: 0
