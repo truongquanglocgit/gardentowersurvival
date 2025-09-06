@@ -7,10 +7,13 @@ public class GachaController : MonoBehaviour
 {
     public GachaBannerData currentBanner;
     public int costPerRoll = 10;
+    public TowerEquipPanel equipPanel;
     public Transform resultParent;
     public GameObject resultUIPrefab;
     public GachaResultPanel gachaResultPanel;
+    
 
+    
     public void RollOnce()
     {
         Debug.Log("👉 RollOnce button clicked");
@@ -21,9 +24,16 @@ public class GachaController : MonoBehaviour
             return;
         }
 
-        var tower = currentBanner.GetRandomTower();
-        Debug.Log($"🎯 Rolled one: {tower?.displayName} ({tower?.rarity})");
+        
 
+        var tower = currentBanner?.GetRandomTower();
+        if (tower == null)
+        {
+            Debug.LogError("[Gacha] GetRandomTower() trả về null. Kiểm tra config banner!");
+            return;
+        }
+
+        Debug.Log($"🎯 Rolled one: {tower.displayName} ({tower.rarity})");
         UnlockTower(tower);
         gachaResultPanel.ShowResults(new List<TowerData> { tower });
     }
@@ -39,14 +49,45 @@ public class GachaController : MonoBehaviour
             return;
         }
 
-        List<TowerData> results = currentBanner.RollMulti(10);
-        Debug.Log($"🎯 Rolled ten: {string.Join(", ", results.Select(r => r.displayName))}");
+        
 
-        foreach (var tower in results)
+        List<TowerData> results = currentBanner?.RollMulti(10);
+        if (results == null || results.Count == 0)
+        {
+            Debug.LogError("[Gacha] RollMulti trả về null/empty. Kiểm tra config banner!");
+            return;
+        }
+
+        // Lọc null, thay bằng fallback để không crash
+        int nullCount = results.Count(r => r == null);
+        if (nullCount > 0)
+        {
+            Debug.LogWarning($"[Gacha] Có {nullCount} kết quả null. Sẽ thay bằng fallback.");
+            for (int i = 0; i < results.Count; i++)
+            {
+                if (results[i] == null)
+                {
+                    var fb = currentBanner.GetRandomTower();
+                    if (fb == null)
+                    {
+                        Debug.LogError("[Gacha] Fallback cũng null. Bỏ qua slot này.");
+                        continue;
+                    }
+                    results[i] = fb;
+                }
+            }
+        }
+
+        // KHÔNG gọi r.displayName trực tiếp nữa → tránh NRE
+        var names = string.Join(", ", results.Where(r => r != null).Select(r => r.displayName));
+        Debug.Log($"🎯 Rolled ten: {names}");
+
+        foreach (var tower in results.Where(t => t != null))
             UnlockTower(tower);
 
-        gachaResultPanel.ShowResults(results);
+        gachaResultPanel.ShowResults(results.Where(t => t != null).ToList());
     }
+
 
 
 
@@ -57,12 +98,14 @@ public class GachaController : MonoBehaviour
         {
             pd.unlockedTowerIds.Add(tower.towerId);
             PlayerDataManager.Instance.SavePlayerData();
+            
             Debug.Log($"🔓 Unlocked: {tower.displayName}");
         }
         else
         {
             Debug.Log($"Already unlocked: {tower.displayName}");
         }
+        equipPanel.Rerender();
     }
 
     void ShowResult(TowerData tower)
@@ -73,7 +116,8 @@ public class GachaController : MonoBehaviour
         {
             img.sprite = tower.icon;
         }
-
+        
+        
         // TODO: bạn có thể mở rộng phần hiển thị icon độ hiếm, hiệu ứng, tên, border theo rarity ở đây
     }
 }

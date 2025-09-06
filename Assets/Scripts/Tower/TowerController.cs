@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 public class TowerController : MonoBehaviour
 {
@@ -26,7 +27,7 @@ public class TowerController : MonoBehaviour
     public int seedCost = 100;
     public float sellRoti = 0.4f;     // tỉ lệ hoàn seed khi bán
     public float upgradeRoti = 0.8f;  // tỉ lệ tính giá upgrade
-    public float currentValue ;
+    public float currentValue;
     [Header("Meta")]
     public string towerName = "Tomato";
     public int Level = 1;
@@ -36,23 +37,28 @@ public class TowerController : MonoBehaviour
     public float[] damageLevels;   // size = MaxLevel
     public float[] rangeLevels;
     public float[] atkSpeedLevels; // fireRate per level
+    [Header("Level as Stars (over head)")]
+    [SerializeField] private RectTransform currentStarsContainer; // World-Space holder
+    [SerializeField] private GameObject starPrefab;               // prefab UI/Image 1 ngôi sao
+    [SerializeField] private Sprite starFilled;                   // sprite sao đầy
+    [SerializeField] private float starWorldSize = 0.25f;         // kích thước world scale
+    [SerializeField] private float starOffsetY = 2.0f;            // độ cao so với tower
+    [SerializeField] private float starSpacing = 6f;
 
-    
     public enum TargetMode { First, Last, Strongest, Weakest }
     public TargetMode TargetingMode = TargetMode.First;
     [SerializeField] private bool debugTargeting = false;
     public float retargetInterval = 0.15f; // giãn nhịp retarget
 
-    [Header("Visual")]
-    public Sprite previewSprite;
 
     // refs & runtime
-    private Bullet bulletScript;
-    public Bullet bullet; // nếu bạn dùng Bullet component khác để GetStat()
+    private Bullets bulletScript;
+    public Bullets bullet; // nếu bạn dùng Bullet component khác để GetStat()
     private float fireCooldown = 0f;
     private float retargetTimer = 0f;
     private Transform target;
     private TargetMode lastMode;
+    private TowerController current;
 
     // ======= Helpers =======
     public bool CanUpgrade => Level < MaxLevel;
@@ -82,34 +88,13 @@ public class TowerController : MonoBehaviour
     {
         return Mathf.RoundToInt(currentValue * sellRoti) + (Level - 1) * Mathf.RoundToInt(currentValue * 0.2f);
     }
-
-    public bool Upgrade()
+    public void ShowStar()
     {
-        if (!CanUpgrade) return false;
-
-        int cost = GetUpgradeCost();
-        currentValue = currentValue + cost;
-        if (!GameController.Instance.TrySpendSeed(cost))
-        {
-            if (debugTargeting) Debug.Log($"[Upgrade] Not enough seed. Need {cost}, have {GameController.Instance.Seed}");
-            return false;
-        }
-
-        Level++;
-        if (debugTargeting) Debug.Log($"[Upgrade] {towerName} -> Level {Level}");
-
-        OnTowerUpgraded?.Invoke(this);
-
-        // nếu có bullet stat riêng
-        if (bullet != null)
-        {
-            try { bullet.GetStat(); } catch { /* bỏ qua nếu không có */ }
-        }
-
-        // sau nâng cấp có thể muốn retarget lại
-        ForceRetargetNow();
-        return true;
+        EnsureStarUI();
+        RenderStars(currentStarsContainer, Level);
     }
+
+
 
     public static System.Action<TowerController> OnTowerUpgraded;
 
@@ -135,6 +120,91 @@ public class TowerController : MonoBehaviour
         if (debugTargeting) Debug.Log($"[Targeting] Mode switched to {TargetingMode}");
         ForceRetargetNow();
     }
+    // =================== STARS UI ===================
+
+
+    void EnsureStarUI()
+    {
+        if (currentStarsContainer != null) return;
+
+        // Tạo Canvas world-space + holder
+        var canvasGO = new GameObject("StarCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        canvasGO.transform.SetParent(transform, false);
+        canvasGO.transform.localPosition = Vector3.up * starOffsetY;
+
+        var canvas = canvasGO.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.sortingOrder = 50;
+
+        var scaler = canvasGO.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+        canvasGO.transform.localScale = Vector3.one * starWorldSize;
+
+        // Holder ngang để đặt sao
+        var holder = new GameObject("Stars", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        holder.transform.SetParent(canvasGO.transform, false);
+        var rt = holder.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(200, 50);
+        rt.anchoredPosition = Vector2.zero;
+        var hlg = holder.GetComponent<HorizontalLayoutGroup>();
+        hlg.childAlignment = TextAnchor.MiddleCenter;
+        hlg.spacing = starSpacing;
+        hlg.childForceExpandHeight = hlg.childForceExpandWidth = false;
+
+        currentStarsContainer = rt;
+    }
+
+    void RenderStars(RectTransform container, int count)
+    {
+        if (!container || !starPrefab || !starFilled) return;
+
+        int have = container.childCount;
+        for (int i = 0; i < count; i++)
+        {
+            GameObject star;
+            if (i < have) star = container.GetChild(i).gameObject;
+            else star = Instantiate(starPrefab, container);
+
+            star.name = $"Star_{i + 1}";
+            var img = star.GetComponent<Image>();
+            if (img) { img.sprite = starFilled; img.color = Color.white; }
+            star.SetActive(true);
+        }
+        for (int i = count; i < have; i++)
+            container.GetChild(i).gameObject.SetActive(false);
+    }
+
+    // =================== UPGRADE ===================
+    public bool Upgrade()
+    {
+        if (!CanUpgrade) return false;
+
+        int cost = GetUpgradeCost();
+        currentValue = currentValue + cost;
+        if (!GameController.Instance.TrySpendSeed(cost))
+        {
+            if (debugTargeting) Debug.Log($"[Upgrade] Not enough seed. Need {cost}, have {GameController.Instance.Seed}");
+            return false;
+        }
+
+        Level++;
+        ShowStar();
+        if (debugTargeting) Debug.Log($"[Upgrade] {towerName} -> Level {Level}");
+
+        OnTowerUpgraded?.Invoke(this);
+
+        // nếu có bullet stat riêng
+        if (bullet != null)
+        {
+            try { bullet.GetStat(); } catch { /* bỏ qua nếu không có */ }
+        }
+
+        // sau nâng cấp có thể muốn retarget lại
+        ForceRetargetNow();
+        return true;
+    }
+
+
 
     // ======= Unity =======
     void Start()
@@ -143,10 +213,11 @@ public class TowerController : MonoBehaviour
 
         if (bulletObject != null)
         {
-            bulletScript = bulletObject.GetComponent<Bullet>();
+            bulletScript = bulletObject.GetComponent<Bullets>();
             bulletObject.SetActive(false);
         }
         currentValue = seedCost;
+        ShowStar(); // hiển thị sao ban đầu
     }
 
     void Update()

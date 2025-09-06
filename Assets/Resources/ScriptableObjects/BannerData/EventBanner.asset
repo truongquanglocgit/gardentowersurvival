@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f5ecbf782d3ffa499da40664186c6eb, type: 3}
+  m_Name: EventBanner
+  m_EditorClassIdentifier: 
+  bannerName: Normal Banner
+  bannerImage: {fileID: 0}
+  rarityGroups:
+  - rarity: 0
+    weight: 70
+    towerGroup: {fileID: 11400000, guid: dd0b8a936ce7d0a43ac606902877a0c4, type: 2}
+  - rarity: 1
+    weight: 40
+    towerGroup: {fileID: 11400000, guid: f83c171bfaf474143ad91dfef0dd710e, type: 2}
+  - rarity: 1
+    weight: 20
+    towerGroup: {fileID: 11400000, guid: c839e844200a74f439c1b0595ea2ef42, type: 2}

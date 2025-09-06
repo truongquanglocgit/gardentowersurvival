@@ -45,7 +45,7 @@ public class GameController : MonoBehaviour
         // ✅ Load waves
         waveManager.LoadWaves(waveList);
         StartCoroutine(waveManager.PlayWaves());
-
+        UpdateTowerCount();
         // ✅ Set player position
         if (player != null && playerSpawnPoint != null)
         {
@@ -56,7 +56,10 @@ public class GameController : MonoBehaviour
         // ✅ Set camera follow
         Camera.main.GetComponent<CameraOrbit>().target = player.transform;
     }
-
+    public void winning()
+    {
+        CurrencyManager.Instance.AddSeed ( GameSession.Instance.currentMapData.waterReward);
+    }
     void Update()
     {
         seedText.text = $"Seed: {Seed}";

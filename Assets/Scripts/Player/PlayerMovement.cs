@@ -8,32 +8,54 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody rb;
 
-    void Start()
+    void Awake()
     {
         rb = GetComponent<Rigidbody>();
         rb.constraints = RigidbodyConstraints.FreezeRotation;
+        if (!cameraTransform && Camera.main) cameraTransform = Camera.main.transform;
     }
 
     void FixedUpdate()
     {
-        Vector3 input = new Vector3(joystick.Horizontal, 0f, joystick.Vertical);
+        // 📱 Joystick luôn chạy (mobile)
+        Vector3 input = new Vector3(
+            joystick ? joystick.Horizontal : 0f,
+            0f,
+            joystick ? joystick.Vertical : 0f
+        );
 
-        // 👉 Nếu không input, bỏ qua
-        if (input.magnitude < 0.1f)
-            return;
+        // ⌨️ WASD chỉ dùng khi chạy trong Editor/Standalone
+#if UNITY_EDITOR || UNITY_STANDALONE
+        // Ưu tiên Input Manager (old)
+        float ax = Input.GetAxisRaw("Horizontal");
+        float az = Input.GetAxisRaw("Vertical");
+        if (Mathf.Abs(ax) > 0.01f || Mathf.Abs(az) > 0.01f)
+        {
+            input = new Vector3(ax, 0f, az);
+        }
+        else
+        {
+            // Fallback đọc phím trực tiếp (kể cả New Input System)
+            float x = 0f, z = 0f;
+            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) x -= 1f;
+            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) x += 1f;
+            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) z += 1f;
+            if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) z -= 1f;
+            if (x != 0f || z != 0f) input = new Vector3(x, 0f, z);
+        }
+#endif
 
-        // 🔄 Xoay input theo góc Y của camera
-        Vector3 camForward = cameraTransform.forward;
-        Vector3 camRight = cameraTransform.right;
-        camForward.y = 0f;
-        camRight.y = 0f;
-        camForward.Normalize();
-        camRight.Normalize();
+        if (input.sqrMagnitude < 0.0001f) return;
 
-        Vector3 moveDir = camForward * input.z + camRight * input.x;
+        // 🔄 Xoay theo camera
+        Vector3 fwd = cameraTransform ? cameraTransform.forward : Vector3.forward;
+        Vector3 right = cameraTransform ? cameraTransform.right : Vector3.right;
+        fwd.y = 0f; right.y = 0f; fwd.Normalize(); right.Normalize();
 
-        // 🚶 Move + xoay theo hướng di chuyển
+        Vector3 moveDir = (fwd * input.z + right * input.x);
+        if (moveDir.sqrMagnitude > 1f) moveDir.Normalize();
+
         rb.MovePosition(rb.position + moveDir * moveSpeed * Time.fixedDeltaTime);
-        transform.forward = moveDir;
+        if (moveDir.sqrMagnitude > 0.0001f) transform.forward = moveDir;
     }
 }

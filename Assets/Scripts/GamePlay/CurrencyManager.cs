@@ -1,29 +1,70 @@
 ﻿using UnityEngine;
 using TMPro;
+
 public class CurrencyManager : MonoBehaviour
 {
     public static CurrencyManager Instance;
     public TextMeshProUGUI seedText;
-    public int seedAmount ; // số lượng seed hiện có
+    public int seedAmount; // số lượng seed hiện có
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     void Start()
     {
-        if (Instance != null) Destroy(gameObject);
-        else
+        // Load dữ liệu player
+        seedAmount = PlayerDataManager.Instance.playerData.seedAmount;
+        Debug.Log("Seed Loaded: " + seedAmount);
+
+        // Tìm TMP có tag "WaterText" nếu chưa gán sẵn
+        if (seedText == null)
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject); // để giữ giữa các scene nếu cần
+            GameObject taggedObj = GameObject.FindGameObjectWithTag("WaterText");
+            if (taggedObj != null)
+            {
+                seedText = taggedObj.GetComponent<TextMeshProUGUI>();
+            }
         }
 
-        // Có thể load từ PlayerData
-        seedAmount = PlayerDataManager.Instance.playerData.seedAmount;
-        Debug.Log(seedAmount);
         SeedDisplay();
     }
+
+    void OnEnable()
+    {
+        // Đăng ký sự kiện khi đổi scene để tự tìm lại UI
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDisable()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        // Khi load scene mới, tìm lại WaterText
+        GameObject taggedObj = GameObject.FindGameObjectWithTag("WaterText");
+        if (taggedObj != null)
+        {
+            seedText = taggedObj.GetComponent<TextMeshProUGUI>();
+            SeedDisplay();
+        }
+    }
+
     public void SeedDisplay()
     {
-        seedText.text = $"Seed: {seedAmount}";
+        if (seedText != null)
+            seedText.text = $"Seed: {seedAmount}";
     }
+
     public bool TrySpendSeed(int amount)
     {
         if (seedAmount >= amount)

@@ -9,7 +9,13 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: 2d96a8aae40ede64694c32f0d6cb93f7
   - enabled: 1
-    path: Assets/Scenes/Level Demo.unity
-    guid: 9fc0d4010bbf28b4594072e72b8655ab
+    path: Assets/Scenes/Map1.unity
+    guid: 625179f235218f34196952f096ee645c
+  - enabled: 1
+    path: Assets/Scenes/Map2.unity
+    guid: 8bcf7d8a41f0f0d49bf5b42d0f6e4797
+  - enabled: 1
+    path: Assets/Scenes/Map3.unity
+    guid: d27d3fca13f2fc5419d4e293b78ffe59
   m_configObjects:
-    com.unity.addressableassets: {fileID: 11400000, guid: 8f0c98b78c5278d4b99cab873f185e6a, type: 2}
+    com.unity.addressableassets: {fileID: 11400000, guid: d069a7ebec66f2c43ad8dc312e6d174a, type: 2}

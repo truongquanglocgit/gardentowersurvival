@@ -150,21 +150,31 @@ public class EnemyController : MonoBehaviour
         isSlowed = false;
     }
 
+    // Thay thế block Burn trong EnemyController
+
     public void ApplyBurn(float duration, float interval)
     {
-        StartCoroutine(BurnCoroutine(duration, interval));
+        // backward-compatible: mặc định 5 damage/tick
+        ApplyBurn(duration, interval, 5f);
     }
 
-    IEnumerator BurnCoroutine(float duration, float interval)
+    // ✅ Overload mới: nhận damagePerTick
+    public void ApplyBurn(float duration, float interval, float damagePerTick)
+    {
+        StartCoroutine(BurnCoroutine(duration, interval, damagePerTick));
+    }
+
+    IEnumerator BurnCoroutine(float duration, float interval, float damagePerTick)
     {
         float elapsed = 0f;
         while (elapsed < duration)
         {
-            TakeDamage(5f);
+            TakeDamage(damagePerTick);
             yield return new WaitForSeconds(interval);
             elapsed += interval;
         }
     }
+
 
     public void ApplyPoison(float duration, float interval, float damage)
     {
