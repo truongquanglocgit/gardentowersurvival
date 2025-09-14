@@ -1,0 +1,21 @@
+<linker>
+	<!-- Nếu code của bạn nằm trong Assembly-CSharp (mặc định khi KHÔNG dùng asmdef) -->
+	<assembly fullname="Assembly-CSharp">
+		<!-- Giữ nguyên toàn bộ lớp ScriptableObject -->
+		<type fullname="WaveDef" preserve="all" />
+		<type fullname="TowerData" preserve="all" />
+		<type fullname="EnemyData" preserve="all" />
+		<type fullname="MapData" preserve="all" />
+		<type fullname="TowerRarityGroup" preserve="all" />
+		<!-- Nếu có lớp con/serializable không phải SO nhưng chỉ xuất hiện trong dữ liệu -->
+		<type fullname="SpawnItem" preserve="all" />
+	</assembly>
+
+	<!-- Nếu bạn dùng asmdef: thay Assembly-CSharp bằng tên assembly trong .asmdef -->
+	<!--
+  <assembly fullname="Game.Data">
+    <type fullname="Game.Data.WaveDef" preserve="all" />
+    <type fullname="Game.Data.SpawnItem" preserve="all" />
+  </assembly>
+  -->
+</linker>

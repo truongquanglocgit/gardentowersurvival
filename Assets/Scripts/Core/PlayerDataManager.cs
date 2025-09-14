@@ -42,8 +42,8 @@ public class PlayerDataManager : MonoBehaviour
 
             playerData = new PlayerData
             {
-                unlockedTowerIds = new List<string> { "t1", "t2" },
-                equippedTowerIds = new List<string> { "", "", "", "", "" }
+                unlockedTowerIds = new List<string> { "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9" },
+                equippedTowerIds = new List<string> { "t10", "t7", "t8", "t9", "t2" }
             };
 
             SavePlayerData();

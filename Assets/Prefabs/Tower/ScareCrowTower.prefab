@@ -280,10 +280,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   range: 10
   fireRate: 1
+  aimPointChildName: AimPoint
+  useColliderForAim: 1
+  colliderTopBias: 0.25
+  defaultAimYOffset: 0.6
+  yawPivot: {fileID: 0}
+  yawDegPerSec: 540
   bulletObject: {fileID: 8981423526162760515}
   firePoint: {fileID: 2617662252324067974}
-  minBulletSpeed: 30
-  maxBulletSpeed: 15
+  minBulletSpeed: 70
+  maxBulletSpeed: 0
   minTowerDamage: 5
   maxTowerDamage: 35
   minRange: 5
@@ -300,6 +306,11 @@ MonoBehaviour:
   damageLevels: []
   rangeLevels: []
   atkSpeedLevels: []
+  anim: {fileID: 0}
+  attackTrigger: Attack
+  attackSpeedParam: AttackSpeed
+  attackStateName: Attack
+  attackClipLength: 0
   currentStarsContainer: {fileID: 8719137564740264997}
   starPrefab: {fileID: 6619891129027016225, guid: 09879b0bc2a9dcf4eb75c9a03f037092, type: 3}
   starFilled: {fileID: 21300000, guid: 782b781d589fcdb4e8ef20c9c7ec949c, type: 3}
@@ -309,7 +320,7 @@ MonoBehaviour:
   TargetingMode: 0
   debugTargeting: 0
   retargetInterval: 0.15
-  bullet: {fileID: 2370955356637614635}
+  fallbackImpactNormTime: 0.25
 --- !u!54 &-8375645251397838461
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -529,17 +540,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0d430b123f80d1641b4e7f1b37e72a18, type: 3}
---- !u!114 &2370955356637614635 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: -225609513288769303, guid: 0d430b123f80d1641b4e7f1b37e72a18, type: 3}
-  m_PrefabInstance: {fileID: 6645388913454658242}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8981423526162760515}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9533dcd5fc4e1714ebe8075f3731fc0e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &6834022088069428401 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 211239151272822387, guid: 0d430b123f80d1641b4e7f1b37e72a18, type: 3}

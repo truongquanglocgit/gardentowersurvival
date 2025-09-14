@@ -9,9 +9,11 @@ public class TowerPlacer : MonoBehaviour
 
     [Header("Config")]
     public LayerMask groundMask;
+    public LayerMask towerMask;          // ⬅️ Layer của các tower đã đặt
+    public float blockCheckRadius = 0.6f; // ⬅️ bán kính kiểm tra va chạm tower
     public Material ghostMaterial;
-    public Material rangeRingMaterial;   // optional, để trống sẽ dùng Sprites/Default
-    public float previewDistance = 2.0f; // khoảng cách trước mặt player
+    public Material rangeRingMaterial;
+    public float previewDistance = 2.0f;
     public float ringWidth = 0.05f;
     public int ringSegments = 64;
     public float ringYOffset = 0.03f;
@@ -27,6 +29,12 @@ public class TowerPlacer : MonoBehaviour
     private LineRenderer rangeRing;
     private bool isPlacing = false;
     private Coroutine warningCoroutine;
+    [Header("Preview")]
+    [Tooltip("Nâng preview lên khỏi mặt đất (m). Chỉ ảnh hưởng preview, không ảnh hưởng tower thật.")]
+    public float previewYOffset = 0.4f;
+    // ghost tint
+    Color okTint = new Color(1f, 1f, 1f, 0.75f);
+    Color badTint = new Color(1f, 0.35f, 0.35f, 0.75f);
 
     Transform player;
 
@@ -50,28 +58,29 @@ public class TowerPlacer : MonoBehaviour
     {
         if (!isPlacing || previewTower == null) return;
 
-        // Preview KHÔNG theo chuột — bám trước mặt player & dán xuống ground
         FollowPlayerAnchor();
 
-        // Cập nhật trạng thái nút Place (đủ tiền/chưa max)
+        // cập nhật nút Place + màu ghost theo trạng thái bị chặn
         UpdatePlaceButtonState();
+        SetGhostBlockedTint(IsBlockedAtPreview());
     }
 
     public void SetCurrentTower(TowerData data)
     {
         currentTower = data;
+        TowerUpgradeUI.Instance.Hide();
         StartPlacing();
+
     }
 
     void StartPlacing()
     {
-        CancelPlacement(); // clear phiên trước
+        CancelPlacement();
         if (currentTower == null || currentTower.prefab == null) return;
 
         if (cancelPlacement) cancelPlacement.gameObject.SetActive(true);
         if (placeButton) placeButton.gameObject.SetActive(true);
 
-        // tạo preview
         previewTower = Instantiate(currentTower.prefab);
         previewTower.name = "Preview_" + currentTower.name;
         MakeGhost(previewTower);
@@ -84,6 +93,13 @@ public class TowerPlacer : MonoBehaviour
     void PlaceFromPreview()
     {
         if (!isPlacing || previewTower == null) return;
+
+        if (IsBlockedAtPreview())
+        {
+            ShowSeedWarning("🚫 Can't place here!");
+            return;
+        }
+
         Vector3 pos = GetGroundPoint(previewTower.transform.position);
         PlaceTower(pos);
     }
@@ -92,7 +108,6 @@ public class TowerPlacer : MonoBehaviour
     {
         if (currentTower == null || currentTower.prefab == null) return;
 
-        // lấy cost từ loại controller nào có
         int cost = GetSeedCost(currentTower.prefab);
         GameController gc = FindObjectOfType<GameController>();
 
@@ -111,7 +126,7 @@ public class TowerPlacer : MonoBehaviour
         gc.Seed -= cost;
         pos.y += 0.2f;
         Instantiate(currentTower.prefab, pos, Quaternion.identity);
-        gc.UpdateTowerCount();
+        gc.UpdateTowerCount(1);
 
         CancelPlacement();
     }
@@ -129,14 +144,14 @@ public class TowerPlacer : MonoBehaviour
     {
         FollowPlayerAnchor(obj.transform);
 
-        // đổi material ghost
         foreach (var r in obj.GetComponentsInChildren<Renderer>())
+        {
             r.material = ghostMaterial;
+            if (r.material.HasProperty("_Color")) r.material.color = okTint;
+        }
 
-        // tránh cản ray/tap
         obj.layer = LayerMask.NameToLayer("Ignore Raycast");
 
-        // tắt logic chiến đấu của tower ghost (cả range lẫn melee)
         var ranged = obj.GetComponent<TowerController>();
         if (ranged) ranged.enabled = false;
         var melee = obj.GetComponent<MeleeTowerController>();
@@ -144,7 +159,7 @@ public class TowerPlacer : MonoBehaviour
 
         foreach (var col in obj.GetComponentsInChildren<Collider>())
             col.enabled = false;
-
+        obj.GetComponentInChildren<TowerController>().enabled = false;
         obj.tag = "Untagged";
     }
 
@@ -154,7 +169,10 @@ public class TowerPlacer : MonoBehaviour
         if (t == null) t = previewTower.transform;
 
         Vector3 target = player.position + player.forward * previewDistance;
-        t.position = GetGroundPoint(target);
+        // điểm va chạm mặt đất
+        Vector3 groundPoint = GetGroundPoint(target);
+        // ✅ nâng preview lên thêm để không chìm
+        t.position = groundPoint + Vector3.up * previewYOffset;
         t.rotation = Quaternion.LookRotation(player.forward, Vector3.up);
     }
 
@@ -170,7 +188,7 @@ public class TowerPlacer : MonoBehaviour
     {
         if (!previewTower) return;
 
-        float radius = GetPreviewRange(previewTower); // đọc range từ controller phù hợp
+        float radius = GetPreviewRange(previewTower);
 
         if (rangeRing) Destroy(rangeRing.gameObject);
 
@@ -210,39 +228,59 @@ public class TowerPlacer : MonoBehaviour
             int cost = GetSeedCost(currentTower.prefab);
             bool enoughSeed = gc.Seed >= cost;
             bool canPlace = gc.CanPlaceTower();
+            bool blocked = IsBlockedAtPreview();
 
-            interact = enoughSeed && canPlace;
+            interact = enoughSeed && canPlace && !blocked;
+
             if (placeButtonText)
-                label = enoughSeed ? $"Place (-{cost})" : $"Need {cost}";
+            {
+                label = !enoughSeed ? $"Need {cost}" : (blocked ? "Blocked" : $"Place (-{cost})");
+            }
         }
 
         placeButton.interactable = interact;
         if (placeButtonText) placeButtonText.text = label;
     }
 
+    // ===== NEW: check chỗ đặt có đè lên tower khác không =====
+    bool IsBlockedAtPreview()
+    {
+        if (!previewTower) return false;
+
+        // Dùng OverlapSphere trên layer towerMask
+        var center = previewTower.transform.position;
+        var hits = Physics.OverlapSphere(center, blockCheckRadius, towerMask, QueryTriggerInteraction.Ignore);
+
+        // Vì preview đã disable collider, nên mọi hit đều là tower thật
+        return hits != null && hits.Length > 0;
+    }
+
+    void SetGhostBlockedTint(bool blocked)
+    {
+        if (!previewTower) return;
+        foreach (var r in previewTower.GetComponentsInChildren<Renderer>())
+        {
+            if (r.material.HasProperty("_Color"))
+                r.material.color = blocked ? badTint : okTint;
+        }
+    }
+
     // ===== Helpers: hỗ trợ cả melee và ranged =====
     int GetSeedCost(GameObject prefab)
     {
-        var r = prefab.GetComponent<TowerController>();
+        var r = prefab.GetComponentInChildren<TowerController>();
         if (r) return Mathf.RoundToInt(r.seedCost);
-        var m = prefab.GetComponent<MeleeTowerController>();
+        var m = prefab.GetComponentInChildren<MeleeTowerController>();
         if (m) return Mathf.RoundToInt(m.seedCost);
         return 0;
     }
 
     float GetPreviewRange(GameObject obj)
     {
-        // ưu tiên GetRangeAtLevel(1) nếu có, fallback CurrentRange
         var r = obj.GetComponent<TowerController>();
-        if (r)
-        {
-            try { return r.GetRangeAtLevel(1); } catch { return Mathf.Max(1f, r.CurrentRange); }
-        }
+        if (r) { try { return r.GetRangeAtLevel(1); } catch { return Mathf.Max(1f, r.CurrentRange); } }
         var m = obj.GetComponent<MeleeTowerController>();
-        if (m)
-        {
-            try { return m.GetRangeAtLevel(1); } catch { return Mathf.Max(1f, m.CurrentRange); }
-        }
+        if (m) { try { return m.GetRangeAtLevel(1); } catch { return Mathf.Max(1f, m.CurrentRange); } }
         return 2f;
     }
 

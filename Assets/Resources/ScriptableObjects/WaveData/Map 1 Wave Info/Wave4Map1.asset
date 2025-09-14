@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: ccb5bde7dc9c04f4f9d1ce625139daa7, type: 3}
   m_Name: Wave4Map1
   m_EditorClassIdentifier: Assembly-CSharp::WaveDef
   waveName: Wave 4
@@ -17,26 +17,14 @@ MonoBehaviour:
   - startTime: 0
     spawnerId: s2
     enemyId: e2
-    count: 7
-    interval: 1
-    powerMultiplier: 2
-  - startTime: 0
+    count: 10
+    interval: 2
+    powerMultiplier: 1
+  - startTime: 10
     spawnerId: s1
     enemyId: e2
-    count: 7
-    interval: 1
-    powerMultiplier: 2
-  - startTime: 10
-    spawnerId: s1
-    enemyId: miniboss
-    count: 1
-    interval: 1
-    powerMultiplier: 2
-  - startTime: 10
-    spawnerId: s2
-    enemyId: e1
-    count: 2
-    interval: 1
-    powerMultiplier: 4
+    count: 10
+    interval: 2
+    powerMultiplier: 1
   aliveCap: 60
   interWaveDelay: 5

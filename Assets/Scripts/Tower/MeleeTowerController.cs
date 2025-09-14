@@ -1,12 +1,14 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 using System.Collections.Generic;
 
-public class MeleeTowerController : MonoBehaviour
+public class MeleeTowerController : MonoBehaviour, IUpgradableTower
 {
+
     [Header("Combat")]
-    public float range = 2.5f;
-    public float fireRate = 1.5f;
+    public float range = 2.5f;          // bán kính chém
+    public float fireRate = 1.5f;       // đòn / giây
 
     [Header("Stats (Min/Max)")]
     public float minTowerDamage = 5f, maxTowerDamage = 30f;
@@ -40,8 +42,44 @@ public class MeleeTowerController : MonoBehaviour
     [Header("VFX/SFX (optional)")]
     public ParticleSystem hitVfx;
     public AudioSource hitSfx;
+    float _attackStartedAt;          // thời điểm bắt đầu đòn
+    float _attackDeadline;           // thời điểm tối đa phải kết thúc đòn (failsafe)
+    bool _impactDoneThisSwing;      // đã gây damage trong đòn này chưa
+
+    // === Animator setup ===
+    [Header("Animator")]
+    public Animator anim;                    // auto-find nếu để trống
+    public string attackTrigger = "Attack";  // Trigger trong Animator
+    public string attackSpeedParam = "AttackSpeed"; // Float dùng làm Speed Multiplier
+    public string attackStateName = "Attack";       // state/clip tên "Attack"
+    [Tooltip("Độ dài clip Attack ở speed = 1 (giây). Để 0 sẽ auto tìm theo tên clip.")]
+    public float attackClipLength = 0f;
+    [Range(0f, 0.95f), Tooltip("Fallback: thời điểm impact theo normalizedTime nếu chưa đặt Animation Event.")]
+    public float fallbackImpactNormalizedTime = 0.35f;
+
+    [Header("Facing")]
+    public float turnSpeedDeg = 540f;        // NEW: độ/giây quay về mục tiêu
+    public bool keepUpright = true;          // NEW: chỉ quay yaw
+    public Transform visual;                 // NEW: child chứa model/Animator
+
+    [Header("Debug")]
+    public bool debugLog = false;
 
     float fireCooldown;
+    float _nextAttackTime;
+    bool _attackInProgress;
+    // --- REPLACE biến cũ nếu muốn ---
+    // private float _nextAttackTime;
+
+    
+    // Giới hạn bù nếu tụt FPS quá xa mốc (tránh dồn nhịp)
+    private const float MAX_CATCHUP = 0.2f;
+
+    // target hiện tại để xoay về
+    EnemyController _currentTarget;          // NEW
+
+    // cache overlap để đỡ GC
+    static readonly Collider[] _overlapBuf = new Collider[32];
 
     // helpers
     public bool CanUpgrade => Level < MaxLevel;
@@ -58,47 +96,280 @@ public class MeleeTowerController : MonoBehaviour
     public float CurrentRange => GetRangeAtLevel(Level);
     public float CurrentFireRate => GetFireRateAtLevel(Level);
 
+    public string TowerName => throw new System.NotImplementedException();
+
+    public string TargetingModeDisplay => throw new System.NotImplementedException();
+
+    int IUpgradableTower.Level => throw new System.NotImplementedException();
+
+    int IUpgradableTower.MaxLevel => throw new System.NotImplementedException();
+
     public int GetUpgradeCost() => Mathf.RoundToInt(seedCost * upgradeRoti) + (Level * Mathf.RoundToInt(seedCost * 0.6f));
     public int GetSellPrice() => Mathf.RoundToInt(currentValue * sellRoti) + (Level - 1) * Mathf.RoundToInt(currentValue * 0.2f);
+
+    void Awake()
+    {
+        if (!anim) anim = GetComponentInChildren<Animator>(true);
+        if (!visual)
+        {
+            // NEW: auto-find visual nếu chưa gán
+            if (anim) visual = anim.transform;
+            else if (transform.childCount > 0) visual = transform.GetChild(0);
+        }
+    }
 
     void Start()
     {
         currentValue = seedCost;
         fireCooldown = 0f;
+        _nextAttackTime = 0f;
+        _attackInProgress = false;
+
+        // auto lấy độ dài clip Attack nếu chưa set tay
+        if (attackClipLength <= 0f && anim && anim.runtimeAnimatorController)
+        {
+            foreach (var c in anim.runtimeAnimatorController.animationClips)
+            {
+                if (c.name == attackStateName || c.name.Contains(attackStateName))
+                {
+                    attackClipLength = c.length;
+                    break;
+                }
+            }
+        }
+
         ShowStar();
     }
 
     void Update()
     {
+        // 1) Sync stat theo level
         range = CurrentRange;
         fireRate = CurrentFireRate;
 
-        fireCooldown -= Time.deltaTime;
-        if (fireCooldown <= 0f)
+        // 2) Đồng bộ tốc độ anim theo fireRate
+        if (anim && !string.IsNullOrEmpty(attackSpeedParam))
         {
-            DoMelee();
-            fireCooldown = 1f / Mathf.Max(0.0001f, fireRate);
+            float playbackSpeed = Mathf.Max(0.01f, (attackClipLength > 0 ? attackClipLength : 1f) * fireRate);
+            anim.SetFloat(attackSpeedParam, playbackSpeed);
+        }
+
+        // 3) Giữ/đổi target
+        MaintainTarget();
+
+        // 4) Xoay về target
+        FaceCurrentTarget();
+
+        // 5) Failsafe: nếu vì lý do gì đang "tưởng" là đang đánh mà đã quá hạn → kết thúc đòn
+        if (_attackInProgress && Time.time > _attackDeadline)
+        {
+            if (!_impactDoneThisSwing) DoMelee(); // đảm bảo không mất damage
+            _attackInProgress = false;
+        }
+
+        // 6) Điều kiện ra đòn mới: hết cooldown + có mục tiêu
+        if (!_attackInProgress && _currentTarget != null && Time.time >= _nextAttackTime)
+        {
+            StartAttack();
         }
     }
 
+
+
+
+    // NEW: giữ/validate mục tiêu hiện tại; nếu không hợp lệ thì tìm mục tiêu mới (closest)
+    void MaintainTarget()
+    {
+        if (_currentTarget == null || _currentTarget.IsDead || !IsInsideRange(_currentTarget.transform.position))
+        {
+            _currentTarget = AcquireClosestTargetInRange();
+        }
+    }
+
+    // NEW: chọn enemy gần nhất trong range làm mục tiêu
+    EnemyController AcquireClosestTargetInRange()
+    {
+        int count = Physics.OverlapSphereNonAlloc(transform.position, range, _overlapBuf, enemyMask, QueryTriggerInteraction.Ignore);
+        EnemyController best = null;
+        float bestSqr = float.MaxValue;
+
+        for (int i = 0; i < count; i++)
+        {
+            var c = _overlapBuf[i];
+            var ec = c.GetComponentInParent<EnemyController>() ?? c.GetComponent<EnemyController>();
+            if (ec == null || ec.IsDead) continue;
+
+            float d2 = (ec.transform.position - transform.position).sqrMagnitude;
+            if (d2 < bestSqr) { bestSqr = d2; best = ec; }
+        }
+
+        if (best == null)
+        {
+            // fallback theo tag nếu LayerMask chưa set
+            var tagged = GameObject.FindGameObjectsWithTag(enemyTag);
+            float r2 = range * range;
+            foreach (var go in tagged)
+            {
+                var ec = go.GetComponent<EnemyController>();
+                if (!ec || ec.IsDead) continue;
+                float d2 = (go.transform.position - transform.position).sqrMagnitude;
+                if (d2 <= r2 && d2 < bestSqr) { bestSqr = d2; best = ec; }
+            }
+        }
+        return best;
+    }
+
+    // NEW: helper kiểm tra trong range
+    bool IsInsideRange(Vector3 pos)
+    {
+        return (pos - transform.position).sqrMagnitude <= range * range;
+    }
+
+    void StartAttack()
+    {
+        if (_currentTarget == null) return;
+
+        _attackInProgress = true;
+        _impactDoneThisSwing = false;
+        _attackStartedAt = Time.time;
+
+        if (debugLog) Debug.Log($"[{name}] StartAttack on {_currentTarget.name}");
+
+        // Trigger anim
+        if (anim)
+        {
+            anim.ResetTrigger(attackTrigger);
+            anim.SetTrigger(attackTrigger);
+        }
+
+        // Tính deadline an toàn dựa trên độ dài clip / speed
+        float baseLen = (attackClipLength > 0f) ? attackClipLength : Mathf.Max(0.2f, 1f / Mathf.Max(0.0001f, fireRate));
+        float speedMul = (anim && !string.IsNullOrEmpty(attackSpeedParam)) ? Mathf.Max(0.01f, anim.GetFloat(attackSpeedParam)) : 1f;
+        float estDur = baseLen / Mathf.Max(0.01f, speedMul);
+        _attackDeadline = Time.time + estDur + 0.2f; // +0.2s margin
+
+        // Khởi chạy fallback nếu clip chưa có Animation Event
+        StopCoroutine(nameof(FallbackImpactRoutine));
+        StartCoroutine(nameof(FallbackImpactRoutine));
+    }
+
+
+
+
+    IEnumerator FallbackImpactRoutine()
+    {
+        // chờ 1 frame để Animator vào state mới
+        yield return null;
+
+        while (_attackInProgress && anim)
+        {
+            // luôn bám target khi đang vung đòn
+            FaceCurrentTarget();
+
+            var st = anim.GetCurrentAnimatorStateInfo(0);
+            // Nếu vào state Attack hoặc state có Tag="Attack"
+            bool inAttack = st.IsName(attackStateName) || st.IsTag("Attack");
+
+            // Khi qua mốc impact (normalizedTime) mà chưa gây damage → gây ngay
+            if (inAttack && !_impactDoneThisSwing &&
+                st.normalizedTime >= fallbackImpactNormalizedTime && st.normalizedTime < 0.98f)
+            {
+                DoMelee();
+                _impactDoneThisSwing = true;
+            }
+
+            // Nếu anim gần xong mà vẫn chưa kết thúc → kết thúc đòn (đảm bảo không mất damage)
+            if (st.normalizedTime >= 0.98f)
+            {
+                if (!_impactDoneThisSwing) { DoMelee(); _impactDoneThisSwing = true; }
+                _attackInProgress = false;
+                yield break;
+            }
+
+            // Failsafe phụ: nếu quá deadline thì out vòng
+            if (Time.time > _attackDeadline)
+            {
+                if (!_impactDoneThisSwing) { DoMelee(); _impactDoneThisSwing = true; }
+                _attackInProgress = false;
+                yield break;
+            }
+
+            yield return null;
+        }
+    }
+
+
+
+
+    // === Animation Event từ clip Attack sẽ gọi hàm này ===
+    public void OnAttackImpact()
+    {
+        // Animation Event từ clip Attack sẽ gọi hàm này đúng khung đánh
+        if (!_impactDoneThisSwing)
+        {
+            DoMelee();
+            _impactDoneThisSwing = true;
+        }
+
+        // Kết thúc đòn ngay tại impact, và set cooldown từ thời điểm impact để đều nhịp
+        _attackInProgress = false;
+        _nextAttackTime = Time.time + 1f / Mathf.Max(0.0001f, fireRate);
+
+        if (debugLog) Debug.Log($"[{name}] Impact (event), next at {_nextAttackTime:F2}");
+    }
+
+    void TryImpactOnce()
+    {
+        if (_impactedThisSwing) return;   // đã gây dame trong nhát này
+        _impactedThisSwing = true;
+
+        DoMelee();                        // thực sự gây dame
+
+        // Khóa pha theo IMPACT: đặt giờ cho nhát sau tại đây
+        float period = 1f / Mathf.Max(0.0001f, fireRate);
+        if (_nextAttackTime == 0f || Time.time - _nextAttackTime > MAX_CATCHUP)
+            _nextAttackTime = Time.time + period;
+        else
+            _nextAttackTime += period;
+    }
+
+    void EndSwing()
+    {
+        _attackInProgress = false;
+    }
+
+    // Khi đòn bị hủy giữa chừng (mất state hoặc target) -> không spam attack
+    void AbortAttackSoft()
+    {
+        _attackInProgress = false;
+        float period = 1f / Mathf.Max(0.0001f, fireRate);
+        _nextAttackTime = Mathf.Max(_nextAttackTime, Time.time + period * 0.5f);
+    }
+
+
+    // === Gây sát thương cho tất cả enemy trong bán kính ===
     void DoMelee()
     {
-        var hits = Physics.OverlapSphere(transform.position, range, enemyMask);
-        var victims = new List<EnemyController>();
+        float dmg = CurrentDamage;
 
-        if (hits.Length > 0)
+        int count = Physics.OverlapSphereNonAlloc(transform.position, range, _overlapBuf, enemyMask, QueryTriggerInteraction.Ignore);
+        List<EnemyController> victims = null;
+
+        if (count > 0)
         {
-            foreach (var c in hits)
+            victims = new List<EnemyController>(count);
+            for (int i = 0; i < count; i++)
             {
+                var c = _overlapBuf[i];
                 var ec = c.GetComponentInParent<EnemyController>() ?? c.GetComponent<EnemyController>();
                 if (ec != null && !ec.IsDead) victims.Add(ec);
             }
         }
         else
         {
-            // fallback theo tag
             var tagged = GameObject.FindGameObjectsWithTag(enemyTag);
             float r2 = range * range;
+            victims = new List<EnemyController>(tagged.Length);
             foreach (var go in tagged)
             {
                 var ec = go.GetComponent<EnemyController>();
@@ -108,26 +379,88 @@ public class MeleeTowerController : MonoBehaviour
             }
         }
 
-        if (victims.Count == 0) return;
+        if (victims != null && victims.Count > 0)
+        {
+            foreach (var ec in victims) ec.TakeDamage(dmg);
+            if (hitVfx) hitVfx.Play();
+            if (hitSfx) hitSfx.Play();
+        }
 
-        float dmg = CurrentDamage;
-        foreach (var ec in victims) ec.TakeDamage(dmg);
-
-        if (hitVfx) hitVfx.Play();
-        if (hitSfx) hitSfx.Play();
+        // NEW: nếu target hiện tại đã chết sau cú chém → tìm lại ngay
+        if (_currentTarget == null || _currentTarget.IsDead) _currentTarget = AcquireClosestTargetInRange();
     }
 
-    // === Stars (tương tự TowerController) ===
+
+
+    bool HasAnyTargetInRange()
+    {
+        // (giữ lại để không phá cũ) – nhưng Update đã dùng _currentTarget rồi
+        int n = Physics.OverlapSphereNonAlloc(transform.position, range, _overlapBuf, enemyMask, QueryTriggerInteraction.Ignore);
+        if (n > 0) return true;
+
+        var tagged = GameObject.FindGameObjectsWithTag(enemyTag);
+        float r2 = range * range;
+        foreach (var go in tagged)
+        {
+            if ((go.transform.position - transform.position).sqrMagnitude <= r2)
+                return true;
+        }
+        return false;
+    }
+
+    // === NEW: xoay về mục tiêu hiện tại ===
+    void FaceCurrentTarget()
+    {
+        if (_currentTarget == null) return;
+
+        Vector3 to = _currentTarget.transform.position - transform.position;
+        to.y = 0f;
+        if (to.sqrMagnitude < 0.0001f) return;
+
+        Quaternion target = Quaternion.LookRotation(to.normalized, Vector3.up);
+
+        // quay root
+        Quaternion newRoot = keepUpright
+            ? Quaternion.Euler(0f, target.eulerAngles.y, 0f)
+            : target;
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, newRoot, turnSpeedDeg * Time.deltaTime);
+
+        // quay visual (nếu có) để chắc chắn model xoay theo
+        if (visual)
+        {
+            Quaternion newVisual = keepUpright
+                ? Quaternion.Euler(0f, target.eulerAngles.y, 0f)
+                : target;
+
+            // Dùng world rotation để đơn giản, hoặc dùng local nếu bạn muốn giữ offset
+            visual.rotation = Quaternion.RotateTowards(visual.rotation, newVisual, turnSpeedDeg * Time.deltaTime);
+        }
+    }
+
+    // === Stars UI giữ nguyên ===
     public void ShowStar()
     {
         EnsureStarUI();
         RenderStars(starsContainer, Level);
     }
+    // Chỉ dùng event hay vẫn cho phép fallback?
+    [SerializeField] bool useAnimationEventOnly = true;
+
+    // Debounce: mỗi nhát chém chỉ gây dame 1 lần
+    bool _impactedThisSwing = false;
+
+    // Kiểm tra đang ở Attack state (tránh dame ngoài anim)
+    bool IsInAttackState()
+    {
+        if (!anim) return false;
+        var st = anim.GetCurrentAnimatorStateInfo(0);
+        return st.IsName(attackStateName) || st.IsTag("Attack");
+    }
+
     void EnsureStarUI()
     {
         if (starsContainer != null) return;
 
-        // Tạo Canvas world-space + holder
         var canvasGO = new GameObject("StarCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         canvasGO.transform.SetParent(transform, false);
         canvasGO.transform.localPosition = Vector3.up * starOffsetY;
@@ -140,7 +473,6 @@ public class MeleeTowerController : MonoBehaviour
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
         canvasGO.transform.localScale = Vector3.one * starWorldSize;
 
-        // Holder ngang để đặt sao
         var holder = new GameObject("Stars", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         holder.transform.SetParent(canvasGO.transform, false);
         var rt = holder.GetComponent<RectTransform>();
@@ -172,6 +504,7 @@ public class MeleeTowerController : MonoBehaviour
         for (int i = count; i < have; i++)
             container.GetChild(i).gameObject.SetActive(false);
     }
+
     public bool Upgrade()
     {
         if (!CanUpgrade) return false;

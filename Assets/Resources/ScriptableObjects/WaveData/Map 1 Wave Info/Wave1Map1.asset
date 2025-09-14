@@ -9,22 +9,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: ccb5bde7dc9c04f4f9d1ce625139daa7, type: 3}
   m_Name: Wave1Map1
   m_EditorClassIdentifier: Assembly-CSharp::WaveDef
   waveName: Wave 1
   items:
-  - startTime: 0
+  - startTime: 5
     spawnerId: s2
     enemyId: e1
-    count: 5
+    count: 1
     interval: 2
-    powerMultiplier: 0.5
-  - startTime: 0
-    spawnerId: s1
-    enemyId: e1
-    count: 10
-    interval: 2
-    powerMultiplier: 0.5
+    powerMultiplier: 1000
   aliveCap: 60
   interWaveDelay: 5

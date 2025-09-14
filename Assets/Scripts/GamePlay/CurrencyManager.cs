@@ -14,6 +14,7 @@ public class CurrencyManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+        SeedDisplay();
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -62,7 +63,7 @@ public class CurrencyManager : MonoBehaviour
     public void SeedDisplay()
     {
         if (seedText != null)
-            seedText.text = $"Seed: {seedAmount}";
+            seedText.text = $"{seedAmount}";
     }
 
     public bool TrySpendSeed(int amount)

@@ -7,6 +7,8 @@ TagManager:
   - Enemy
   - Tower
   - WaterText
+  - FxTemporaire
+  - Spawner
   layers:
   - Default
   - TransparentFX

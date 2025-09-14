@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 097c4c59b126f2c42bcf98548d5b5436, type: 3}
+  m_Name: Kiwigun
+  m_EditorClassIdentifier: 
+  towerId: t10
+  displayName: Kiwi Gun
+  icon: {fileID: 21300000, guid: 1e306314f32d4fe41b1b598e81437370, type: 3}
+  rarity: 3
+  cost: 800
+  range: 5
+  fireRate: 1
+  damage: 10
+  prefab: {fileID: 8246720172038667037, guid: e9b8d389aea722a48a2953cc6ac3f3ea, type: 3}

@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: 097c4c59b126f2c42bcf98548d5b5436, type: 3}
   m_Name: FarmerTower
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
   towerId: t6

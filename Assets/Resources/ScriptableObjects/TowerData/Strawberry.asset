@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 097c4c59b126f2c42bcf98548d5b5436, type: 3}
+  m_Name: Strawberry
+  m_EditorClassIdentifier: Assembly-CSharp::TowerData
+  towerId: t1
+  displayName: Strawberry
+  icon: {fileID: 21300000, guid: 93d5507d0f51af448b56ec6d1c959fd0, type: 3}
+  rarity: 0
+  cost: 150
+  range: 5
+  fireRate: 1
+  damage: 5
+  prefab: {fileID: 8246720172038667037, guid: 990a2433234fa3f448921ab927d3c648, type: 3}

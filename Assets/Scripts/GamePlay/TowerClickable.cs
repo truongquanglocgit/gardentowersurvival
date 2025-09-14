@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Unity.VisualScripting;
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class TowerClickable : MonoBehaviour
@@ -7,7 +8,8 @@ public class TowerClickable : MonoBehaviour
 
     private void Reset()
     {
-        if (!tower) tower = GetComponent<TowerController>();
+        if (!tower) tower = gameObject.GetComponentInChildren<TowerController>();
+        if (tower == null) Debug.Log("cannot find tc");
     }
 
     void Update()

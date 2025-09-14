@@ -1,30 +1,28 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class InGameSettingPanel : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        ClosePanel();
-    }
+    void Start() => ClosePanel();
 
-    
     public void ClosePanel()
     {
+        PauseManager.PopPause();
         gameObject.SetActive(false);
     }
-    public void OpenPanel()
+    public void OpenPanel() 
     {
+        PauseManager.PushPause();
         gameObject.SetActive(true);
     }
+
     public void OnClickExitToMainMenu()
     {
-        
+        // 1) Reset trạng thái runtime
+        GameResetter.ResetBeforeExitToMenu();
 
-        SceneManager.LoadScene("MainMenu");
-        ClosePanel();
+        // 2) Load scene ở chế độ Single (unload toàn bộ scene hiện tại)
+        LoaderBridge.LoadWithLoadingScreen("MainMenu", "Loading");
+        // (ClosePanel sau Load cũng OK vì object sẽ bị unload cùng scene)
     }
 }

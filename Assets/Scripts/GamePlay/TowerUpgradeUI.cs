@@ -20,12 +20,12 @@ public class TowerUpgradeUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI textAtkSpeed;
 
     [Header("Level as Stars")]
-    [SerializeField] private RectTransform currentStarsContainer; // group sao hiện tại
-    [SerializeField] private RectTransform nextStarsContainer;    // group sao nâng cấp
-    [SerializeField] private GameObject starPrefab;               // prefab 1 ngôi sao (Image)
-    [SerializeField] private Sprite starFilled;                   // sao đầy
-    [SerializeField] private Sprite starEmpty;                    // sao rỗng (optional)
-    [SerializeField] private TextMeshProUGUI arrowText;           // TMP “→” giữa 2 dãy
+    [SerializeField] private RectTransform currentStarsContainer;
+    [SerializeField] private RectTransform nextStarsContainer;
+    [SerializeField] private GameObject starPrefab;
+    [SerializeField] private Sprite starFilled;
+    [SerializeField] private Sprite starEmpty;
+    [SerializeField] private TextMeshProUGUI arrowText;
 
     [Header("Buttons")]
     [SerializeField] private Button btnUpgrade;
@@ -35,38 +35,106 @@ public class TowerUpgradeUI : MonoBehaviour
     [SerializeField] private Button btnClose;
 
     private TowerController current;
+    private MeleeTowerController currentMele;
+
+    // Để tránh pop slow trùng khi panel bị disable từ nơi khác
+    private bool _ownsSlowMotion = false;
 
     void Awake()
     {
         Instance = this;
+
         if (panel) panel.SetActive(false);
 
         if (btnUpgrade) btnUpgrade.onClick.AddListener(OnClickUpgrade);
         if (btnSell) btnSell.onClick.AddListener(OnClickSell);
         if (btnClose) btnClose.onClick.AddListener(Hide);
 
-        if (backBlocker) backBlocker.raycastTarget = true;
+        // Cho backBlocker bấm để đóng (nếu muốn)
+        if (backBlocker)
+        {
+            backBlocker.raycastTarget = true;
+            var bbBtn = backBlocker.GetComponent<Button>();
+            if (!bbBtn) bbBtn = backBlocker.gameObject.AddComponent<Button>();
+            bbBtn.onClick.RemoveAllListeners();
+            bbBtn.onClick.AddListener(Hide);
+        }
+    }
+
+    void OnEnable()
+    {
+        // Reset nhẹ UI mỗi khi panel bật
+        if (arrowText) arrowText.gameObject.SetActive(false);
+        if (textTowerName) textTowerName.text = "";
+        if (textTargetMode) textTargetMode.text = "";
+        if (textDamage) textDamage.text = "";
+        if (textAtkSpeed) textAtkSpeed.text = "";
+        ClearContainer(currentStarsContainer);
+        ClearContainer(nextStarsContainer);
+    }
+
+    void OnDisable()
+    {
+        // Nếu panel bị tắt từ nơi khác (không đi qua Hide), đảm bảo trả slow về như cũ
+        if (_ownsSlowMotion)
+        {
+            //PauseManager.PopSlow();
+            _ownsSlowMotion = false;
+        }
+        current = null;
+    }
+
+    void OnDestroy()
+    {
+        // Phòng ngừa lần cuối
+        if (_ownsSlowMotion)
+        {
+            //PauseManager.PopSlow();
+            _ownsSlowMotion = false;
+        }
     }
 
     public void Show(TowerController tower)
     {
         current = tower;
-        if (panel) panel.SetActive(true);
-        if (backBlocker) backBlocker.raycastTarget = true;
-        PauseManager.PushPause();
+        TowerPlacer.I.CancelPlacement();
+        if (panel && !panel.activeSelf)
+        {
+            panel.SetActive(true);
+        }
+
+        // Bật slow nếu chưa bật ở phiên này
+        if (!_ownsSlowMotion)
+        {
+            //PauseManager.PushSlow(0.3f);
+            _ownsSlowMotion = true;
+        }
+
         Refresh();
     }
+    public void Show(MeleeTowerController tower)
+    {
+        currentMele = tower;
+        TowerPlacer.I.CancelPlacement();
+        if (panel && !panel.activeSelf)
+        {
+            panel.SetActive(true);
+        }
 
+        // Bật slow nếu chưa bật ở phiên này
+        if (!_ownsSlowMotion)
+        {
+            //PauseManager.PushSlow(0.3f);
+            _ownsSlowMotion = true;
+        }
+
+        Refresh();
+    }
     public void Hide()
     {
-        current = null;
-        if (panel) panel.SetActive(false);
-        PauseManager.PopPause();
-    }
-
-    void OnDestroy()
-    {
-        if (panel && panel.activeSelf) PauseManager.PopPause();
+        
+        OnDisable();
+        this.panel.SetActive(false);
     }
 
     void Refresh()
@@ -101,15 +169,16 @@ public class TowerUpgradeUI : MonoBehaviour
         float? frNext = current.CanUpgrade ? current.GetFireRateAtLevel(lvlNow + 1) : (float?)null;
 
         if (textDamage) textDamage.text = dmgNext != null ? $"{dmgNext}" : $"{dmgNow}";
-        if (textAtkSpeed) textAtkSpeed.text = frNext != null ? $" {frNext:0.##}" : $"{frNow:0.##}";
+        if (textAtkSpeed) textAtkSpeed.text = frNext != null ? $"{frNext:0.##}" : $"{frNow:0.##}";
 
         int upCost = current.GetUpgradeCost();
         bool canUpgrade = current.CanUpgrade && GameController.Instance.Seed >= upCost;
         int sellVal = current.GetSellPrice();
+
         if (txtUpgradePrice) txtUpgradePrice.text = current.CanUpgrade ? $"-{upCost}" : "Max Level";
         if (txtSellPrice) txtSellPrice.text = $"+{sellVal}";
 
-        // button + toàn bộ child cùng dim
+        // Dim toàn bộ cụm upgrade khi không đủ điều kiện
         if (btnUpgrade)
         {
             btnUpgrade.interactable = canUpgrade;
@@ -117,9 +186,9 @@ public class TowerUpgradeUI : MonoBehaviour
             var cg = btnUpgrade.GetComponent<CanvasGroup>();
             if (!cg) cg = btnUpgrade.gameObject.AddComponent<CanvasGroup>();
 
-            cg.alpha = canUpgrade ? 1f : 0.45f;   // độ tối mong muốn
-            cg.interactable = canUpgrade;         // chặn tương tác toàn bộ con
-            cg.blocksRaycasts = canUpgrade;       // chặn raycast khi khóa
+            cg.alpha = canUpgrade ? 1f : 0.45f;
+            cg.interactable = canUpgrade;
+            cg.blocksRaycasts = canUpgrade;
         }
     }
 
@@ -139,12 +208,12 @@ public class TowerUpgradeUI : MonoBehaviour
             {
                 if (filled && starFilled) img.sprite = starFilled;
                 else if (!filled && starEmpty) img.sprite = starEmpty;
-                // Nếu không có starEmpty, dùng starFilled + giảm alpha cho ô “rỗng”
+
                 img.color = (filled || starEmpty != null) ? Color.white : new Color(1, 1, 1, 0.25f);
                 img.enabled = true;
             }
 
-            go.SetActive(i < maxCount); // ẩn bớt sao nếu maxCount nhỏ hơn số child
+            go.SetActive(i < maxCount);
         }
     }
 
@@ -156,7 +225,6 @@ public class TowerUpgradeUI : MonoBehaviour
             var go = Instantiate(starPrefab, container);
             go.name = $"Star_{i + 1}";
         }
-        // Nếu thừa có thể giữ lại để tái sử dụng; không cần destroy
     }
 
     void ClearContainer(RectTransform container)
@@ -172,7 +240,7 @@ public class TowerUpgradeUI : MonoBehaviour
         if (current.Upgrade())
         {
             Refresh();
-            PauseManager.PopPause();
+            // KHÔNG pop pause/slow ở đây; UI vẫn đang mở để xem chỉ số mới
         }
     }
 
@@ -181,7 +249,6 @@ public class TowerUpgradeUI : MonoBehaviour
         if (!current) return;
         GameController.Instance.AddSeed(current.GetSellPrice());
         current.SellAndDestroy();
-        PauseManager.PopPause();
-        Hide();
+        Hide(); // Hide sẽ pop slow nếu đang giữ
     }
 }
