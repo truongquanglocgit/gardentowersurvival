@@ -30,7 +30,7 @@ public class EnemyHealthUI : MonoBehaviour
     void Update()
     {
         if (controller == null || healthSlider == null) return;
-        healthText.text = $"{healthSlider.value.ToString()} / {maxHealth}" ;
+        healthText.text = $"{healthSlider.value.ToString()}" ;
         healthSlider.value = controller.hp;
 
         // Tính bounds tổng của enemy

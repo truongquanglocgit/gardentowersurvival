@@ -16,11 +16,20 @@ MonoBehaviour:
   bannerImage: {fileID: 0}
   rarityGroups:
   - rarity: 0
-    weight: 70
+    weight: 80
     towerGroup: {fileID: 11400000, guid: dd0b8a936ce7d0a43ac606902877a0c4, type: 2}
   - rarity: 1
-    weight: 40
+    weight: 60
     towerGroup: {fileID: 11400000, guid: f83c171bfaf474143ad91dfef0dd710e, type: 2}
-  - rarity: 1
-    weight: 20
+  - rarity: 2
+    weight: 40
     towerGroup: {fileID: 11400000, guid: c839e844200a74f439c1b0595ea2ef42, type: 2}
+  - rarity: 3
+    weight: 20
+    towerGroup: {fileID: 11400000, guid: c9b2a17161862494885eb6716415a154, type: 2}
+  - rarity: 4
+    weight: 5
+    towerGroup: {fileID: 11400000, guid: 9f4d2975615db014aba89ae1bb0f239b, type: 2}
+  - rarity: 5
+    weight: 2
+    towerGroup: {fileID: 11400000, guid: a7634c4d8c7b182498ede189de69af05, type: 2}

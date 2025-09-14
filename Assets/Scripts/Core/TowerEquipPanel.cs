@@ -5,17 +5,17 @@ using UnityEngine.UI;
 
 public class TowerEquipPanel : MonoBehaviour
 {
-    
     [Header("UI References")]
     public Transform towerListContainer;
     public GameObject towerButtonPrefab;
     public List<EquipSlot> equipSlots;
+
     [Header("Info Panel")]
-    [SerializeField] private TowerInfoPanel infoPanel;   // <-- kéo panel vào Inspector
-    [SerializeField] private int infoPreviewLevel = 1;   // level dùng để xem trước
+    [SerializeField] private TowerInfoPanel infoPanel;
+    [SerializeField] private int infoPreviewLevel = 1;
+
     [Header("Equip Config")]
-    [Range(1, 8)]
-    public int maxEquip = 5;
+    [Range(1, 8)] public int maxEquip = 5;
     [Tooltip("Nếu bật sẽ cho phép trang bị 2 slot cùng 1 tower")]
     public bool allowDuplicateEquip = false;
 
@@ -25,13 +25,13 @@ public class TowerEquipPanel : MonoBehaviour
 
     // cache
     Dictionary<string, TowerData> byId;
-    int selectedEquipSlotIndex = -1;
-    List<TowerData> sourceCache; // lưu list hiện dùng để re-render
+    int selectedEquipSlotIndex = -1;   // -1 = không chọn slot nào
+    List<TowerData> sourceCache;
 
     void Start()
     {
         LoadData();
-        // giới hạn theo số slot thật
+
         maxEquip = Mathf.Clamp(maxEquip, 1, equipSlots.Count);
 
         for (int i = 0; i < equipSlots.Count; i++)
@@ -41,42 +41,62 @@ public class TowerEquipPanel : MonoBehaviour
         RenderTowerList(sourceCache);
         ClosePanel();
     }
+
+    // ================== Data ==================
     public void LoadData()
     {
-        // ƯU TIÊN: dùng asset gắn tay → nếu null thì lấy từ GameSession
         var db = allTowerDatabase != null ? allTowerDatabase
                  : (GameSession.Instance ? GameSession.Instance.allTowerDatabase : null);
 
         if (db == null || db.allTowers == null || db.allTowers.Count == 0)
         {
-            Debug.LogError("❌ TowerEquipPanel: Chưa gán AllTowerDatabase (asset) và GameSession cũng không có. Gán asset giúp nhé.");
+            Debug.LogError("❌ TowerEquipPanel: Chưa gán AllTowerDatabase và GameSession cũng không có.");
             gameObject.SetActive(false);
             return;
         }
 
         sourceCache = db.allTowers;
         byId = sourceCache
-                 .Where(t => t && !string.IsNullOrEmpty(t.towerId))
-                 .GroupBy(t => t.towerId)
-                 .ToDictionary(g => g.Key, g => g.First());
-
+            .Where(t => t && !string.IsNullOrEmpty(t.towerId))
+            .GroupBy(t => t.towerId)
+            .ToDictionary(g => g.Key, g => g.First());
     }
+
     public void Rerender()
     {
         LoadData();
         RenderTowerList(sourceCache);
     }
+
+    // ================== Slot select/toggle ==================
     public void SelectEquipSlot(int index)
     {
+        // Nếu bấm lại chính slot đang được chọn -> HỦY CHỜ EQUIP
+        if (selectedEquipSlotIndex == index)
+        {
+            DeselectEquipSlot();
+            return;
+        }
+
         selectedEquipSlotIndex = Mathf.Clamp(index, 0, equipSlots.Count - 1);
-
-        for (int i = 0; i < equipSlots.Count; i++)
-            equipSlots[i].SetHighlight(i == selectedEquipSlotIndex);
-
-        // cập nhật trạng thái nút theo slot đang chọn (để disable những tower đã được equip ở slot khác)
+        UpdateSlotHighlights();
         if (sourceCache != null) RenderTowerList(sourceCache);
     }
 
+    void DeselectEquipSlot()
+    {
+        selectedEquipSlotIndex = -1;
+        UpdateSlotHighlights();
+        if (sourceCache != null) RenderTowerList(sourceCache);
+    }
+
+    void UpdateSlotHighlights()
+    {
+        for (int i = 0; i < equipSlots.Count; i++)
+            equipSlots[i].SetHighlight(i == selectedEquipSlotIndex);
+    }
+
+    // ================== Render ==================
     void RenderEquippedSlots()
     {
         var equippedIds = PlayerDataManager.Instance.playerData.equippedTowerIds;
@@ -115,11 +135,11 @@ public class TowerEquipPanel : MonoBehaviour
 
             btn.Setup(tower, (towerData) =>
             {
-                // ❗ Nếu chưa chọn slot equip → mở panel info thay vì trang bị
+                // ❗ Chưa chọn slot → xem Info
                 if (selectedEquipSlotIndex < 0)
                 {
                     if (infoPanel) infoPanel.OpenFor(towerData);
-                    else Debug.Log("⚠️ Chưa gán TowerInfoPanel vào EquipPanel.");
+                    else Debug.Log("⚠️ Chưa gán TowerInfoPanel.");
                     return;
                 }
 
@@ -133,30 +153,31 @@ public class TowerEquipPanel : MonoBehaviour
                 int dupIdx = equippedIds.FindIndex(id => id == towerData.towerId);
                 if (!allowDuplicateEquip && dupIdx >= 0 && dupIdx != selectedEquipSlotIndex)
                 {
-                    Debug.Log($"❌ Tower '{towerData.towerId}' đã trang bị ở slot {dupIdx + 1}.");
+                    // Không cho equip trùng, nhưng vẫn mở info
+                    if (infoPanel) infoPanel.OpenFor(towerData);
+                    // Highlight slot đang giữ tower đó cho dễ thấy (không bắt buộc)
                     for (int i = 0; i < equipSlots.Count; i++)
                         equipSlots[i].SetHighlight(i == dupIdx);
                     return;
                 }
 
+                // --- Equip bình thường ---
                 EnsureSize(equippedIds, maxEquip);
                 equippedIds[selectedEquipSlotIndex] = towerData.towerId;
 
                 PlayerDataManager.Instance.SavePlayerData();
                 RenderEquippedSlots();
                 RenderTowerList(source);
+
+                // ✅ Equip xong → tự hủy chờ equip ở slot đó
+                DeselectEquipSlot();
             });
 
-            // trạng thái click theo mở khóa & chống trùng
+            // Cho click nếu đã mở khóa (kể cả đã equip ở slot khác → vẫn click để mở Info khi cần)
             var uiBtn = btn.GetComponent<Button>();
-            if (uiBtn)
-            {
-                // Nếu đã equip ở slot khác → vẫn cho interactable = true
-                // Nhưng khi click thì chỉ mở Info, không cho equip
-                uiBtn.interactable = isUnlocked;
-            }
+            if (uiBtn) uiBtn.interactable = isUnlocked;
 
-            // màu icon
+            // Màu icon
             if (btn.icon != null)
             {
                 if (!isUnlocked) btn.icon.color = new Color(0.6f, 0.6f, 0.6f, 1f);
@@ -172,10 +193,15 @@ public class TowerEquipPanel : MonoBehaviour
         if (list.Count > size) list.RemoveRange(size, list.Count - size);
     }
 
+    // ================== Open/Close ==================
     public void ClosePanel() => gameObject.SetActive(false);
+
     public void OpenPanel()
     {
-        
         gameObject.SetActive(true);
+        // Khi mở panel, mặc định KHÔNG chờ equip
+        DeselectEquipSlot();
+        RenderEquippedSlots();
+        if (sourceCache != null) RenderTowerList(sourceCache);
     }
 }

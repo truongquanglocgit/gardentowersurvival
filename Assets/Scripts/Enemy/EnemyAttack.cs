@@ -2,43 +2,46 @@
 
 public class EnemyAttack : MonoBehaviour
 {
-    private EnemyController controller;
-    
+    [Header("Facing")]
+    [Tooltip("Tốc độ xoay mặt về phía player khi sắp tấn công (độ/giây)")]
+    public float turnSpeedDeg = 720f;
+
     private Transform player;
-    private float lastAttackTime = -Mathf.Infinity;
+    private PlayerController playerCtrl;
 
     void Start()
     {
-        controller = GetComponent<EnemyController>();
-        GameObject p = GameObject.FindGameObjectWithTag("Player");
-        if (p != null) player = p.transform;
+        var p = GameObject.FindGameObjectWithTag("Player");
+        if (p)
+        {
+            player = p.transform;
+            playerCtrl = p.GetComponent<PlayerController>();
+        }
     }
 
-    void Update()
+    /// <summary>Quay mặt dần về phía player (gọi ngay trước khi trigger Attack).</summary>
+    public void FacePlayer()
     {
-        if (player == null || controller == null) return;
+        if (!player) return;
+        Vector3 dir = player.position - transform.position;
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f) return;
 
-        float dist = Vector3.Distance(transform.position, player.position);
+        Quaternion target = Quaternion.LookRotation(dir, Vector3.up);
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            target,
+            turnSpeedDeg * Time.deltaTime
+        );
+    }
 
-        if (dist <= controller.attackRange)
-        {
-            
-
-            if (Time.time - lastAttackTime >= controller.attackSpeed)
-            {
-                var playerControllerComponent = player.GetComponent<PlayerController>();
-                if (playerControllerComponent != null)
-                {
-                    Debug.Log("take dame"+ controller.damage);
-                    playerControllerComponent.TakeDamage(Mathf.RoundToInt(controller.damage));
-                    lastAttackTime = Time.time;
-                    
-                }
-            }
-        }
-        else
-        {
-           
-        }
+    /// <summary>Gây damage – gọi bằng Animation Event ở frame impact, hoặc từ EnemyController.OnAttackImpact().</summary>
+    public void DoDamage(float damage)
+    {
+        if (!playerCtrl) return;
+        playerCtrl.TakeDamage(Mathf.RoundToInt(damage));
+#if UNITY_EDITOR
+        // Debug.Log($"[EnemyAttack] Hit player: {damage}");
+#endif
     }
 }

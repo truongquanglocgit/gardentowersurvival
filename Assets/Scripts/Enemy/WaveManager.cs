@@ -7,22 +7,78 @@ using System;
 
 public static class WaveRuntime
 {
+    // BẬT/TẮT log toàn hệ
+    public static bool LogEnabled = false;
+
     private static int _aliveCount = 0;
     public static int AliveCount
     {
         get => _aliveCount;
-        set => _aliveCount = Math.Max(0, value);
+        private set
+        {
+            _aliveCount = Math.Max(0, value);
+            if (LogEnabled) Debug.Log($"[Wave] AliveCount = {_aliveCount}");
+        }
     }
 
-    // EnemyController gọi khi 1 quái chết
+    // Debug: theo dõi cụ thể instance nào đang "sống"
+    private static readonly HashSet<int> _aliveIds = new HashSet<int>();
+
     public static event Action OnEnemyDied;
     public static void NotifyEnemyDied() => OnEnemyDied?.Invoke();
+
+    // Gọi khi spawn 1 enemy
+    public static void RegisterSpawn(GameObject go)
+    {
+        int id = go ? go.GetInstanceID() : -1;
+        _aliveIds.Add(id);
+        AliveCount = _aliveIds.Count;
+        if (LogEnabled) Debug.Log($"[Wave] SPAWN {go?.name} id={id}  -> alive={AliveCount}");
+    }
+
+    // Gọi khi enemy chết/biến mất khỏi wave
+    public static void RegisterDeath(GameObject go)
+    {
+        int id = go ? go.GetInstanceID() : -1;
+        bool removed = _aliveIds.Remove(id);
+        if (!removed && LogEnabled)
+            Debug.LogWarning($"[Wave] RegisterDeath: id={id} ({go?.name}) KHÔNG có trong aliveIds (double count?)");
+        AliveCount = _aliveIds.Count;
+        if (LogEnabled) Debug.Log($"[Wave] DIE   {go?.name} id={id}  -> alive={AliveCount}");
+        NotifyEnemyDied();
+    }
+
+    // ⭐ GỌI HÀM NÀY KHI RỜI SCENE (trước khi Load MainMenu / map mới)
+    public static void ResetAll()
+    {
+        _aliveIds.Clear();
+        _aliveCount = 0;
+        OnEnemyDied = null;   // gỡ toàn bộ subscriber tĩnh
+        if (LogEnabled) Debug.Log("[Wave] ResetAll()");
+    }
 }
+
+
 
 public class WaveManager : MonoBehaviour
 {
     // Win toàn bộ waves
     public static event Action OnAllWavesCompleted;
+    [Header("Spawner Warning VFX")]
+    [Tooltip("Prefab VFX cảnh báo hiển thị trên spawner khi spawner đó được dùng ở wave hiện tại")]
+    public ParticleSystem spawnerWarningVFXPrefab;
+
+    [Tooltip("Offset world-space đặt VFX so với vị trí spawnPoint của Spawner (m)")]
+    public Vector3 spawnerVFXOffset = new Vector3(0f, 1.2f, 0f);
+
+    [Tooltip("Parent VFX vào spawner để nó bám theo spawner (nếu spawner có chuyển động)")]
+    public bool spawnerVFXParentToSpawner = true;
+
+    [Tooltip("Scale áp cho VFX khi spawn")]
+    public Vector3 spawnerVFXScale = Vector3.one;
+
+    // runtime: VFX đang bật cho wave hiện tại
+    private readonly List<ParticleSystem> _activeSpawnerVFX = new();
 
     [Header("Reward UI")]
     public TextMeshProUGUI rewardText;
@@ -42,7 +98,10 @@ public class WaveManager : MonoBehaviour
     [Header("Countdown UI")]
     public TMP_Text countdownText;
     public bool autoHideCountdown = true;
-
+    // ==== DEBUG EXPOSE ====
+    public int PendingToSpawnDebug => pendingToSpawn;
+    public int KilledThisWaveDebug => killedThisWave;
+    public int AliveCountDebug => WaveRuntime.AliveCount;
     // ======== SKIP FEATURE DISABLED ========
     // [Header("Mid-wave Skip")]
     // public GameObject skipMidWaveButton;     // kéo thả nút
@@ -96,6 +155,8 @@ public class WaveManager : MonoBehaviour
         // =======================================
 
         if (waveCounterText) waveCounterText.gameObject.SetActive(true);
+        if (WaveRuntime.LogEnabled)
+            Debug.Log($"[Wave] Awake. waves={waveList.Count}, enemies={enemyDataList.Count}");
     }
 
     void OnEnable()
@@ -114,7 +175,76 @@ public class WaveManager : MonoBehaviour
             isWavesLoopRunning = false;
         }
     }
+    /// <summary>
+    /// Bật VFX cảnh báo trên các spawner được sử dụng trong wave hiện tại.
+    /// </summary>
+    private void ShowSpawnerWarningVFXForWave(WaveDef wave)
+    {
+        // Không có prefab => bỏ qua
+        if (!spawnerWarningVFXPrefab) return;
 
+        // Tập hợp spawnerId được sử dụng trong wave
+        var usedSpawnerIds = new HashSet<string>();
+        foreach (var it in wave.items)
+            if (!string.IsNullOrEmpty(it.spawnerId))
+                usedSpawnerIds.Add(it.spawnerId);
+
+        // Với mỗi spawnerId -> lấy Spawner thực tế -> spawn VFX ở spawnPoint
+        foreach (var sid in usedSpawnerIds)
+        {
+            if (!SpawnerRegistry.Instance.TryGet(sid, out var spawner) || spawner == null || spawner.spawnPoint == null)
+            {
+                Debug.LogWarning($"[Wave] Spawner VFX: cannot find spawnerId={sid}");
+                continue;
+            }
+
+            var anchor = spawner.spawnPoint; // dùng spawnPoint để đúng tọa độ ra quái
+            Vector3 pos = anchor.position + spawnerVFXOffset;
+            Quaternion rot = anchor.rotation;
+
+            Transform parent = spawnerVFXParentToSpawner ? anchor : null;
+
+            // Tạo VFX
+            var vfx = Instantiate(spawnerWarningVFXPrefab, pos, rot, parent);
+            vfx.transform.localScale = spawnerVFXScale;
+            vfx.Play(true);
+
+            _activeSpawnerVFX.Add(vfx);
+        }
+    }
+
+    /// <summary>
+    /// Tắt & hủy mọi VFX cảnh báo đã bật cho wave vừa rồi.
+    /// </summary>
+    private void ClearSpawnerWarningVFX()
+    {
+        if (_activeSpawnerVFX.Count == 0) return;
+
+        for (int i = 0; i < _activeSpawnerVFX.Count; i++)
+        {
+            var v = _activeSpawnerVFX[i];
+            if (!v) continue;
+
+            // dừng và hủy
+            v.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            Destroy(v.gameObject);
+        }
+        _activeSpawnerVFX.Clear();
+    }
+
+    // (tuỳ chọn) cho gọi chủ động từ chỗ khác
+    public static void ResetEvents()
+    {
+        OnAllWavesCompleted = null;
+    }
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+
+        // gỡ mọi subscriber tĩnh
+        OnAllWavesCompleted = null;
+        WaveRuntime.OnEnemyDied -= HandleEnemyDiedInWave;
+    }
     IEnumerator Start()
     {
         // Đợi Pool sẵn sàng
@@ -129,36 +259,45 @@ public class WaveManager : MonoBehaviour
         // Bắt đầu vòng waves (có guard)
         if (!isWavesLoopRunning)
             wavesLoopCo = StartCoroutine(PlayWaves());
-        else
-            Debug.LogWarning("[WaveManager] PlayWaves() already running, skip start.");
+        else { }
+        if (WaveRuntime.LogEnabled) Debug.Log("[Wave] Start() → PreloadEnemiesAllWaves()");
+        PreloadEnemiesAllWaves();
+
+        currentWaveIndex = 0;
+        UpdateWaveCounter();
+
+        if (!isWavesLoopRunning)
+        {
+            if (WaveRuntime.LogEnabled) Debug.Log("[Wave] Start PlayWaves()");
+            wavesLoopCo = StartCoroutine(PlayWaves());
+        }
+        //Debug.LogWarning("[WaveManager] PlayWaves() already running, skip start."); 
     }
+
 
     // ===== Vòng lặp toàn level =====
     public IEnumerator PlayWaves()
     {
         if (isWavesLoopRunning)
         {
-            Debug.LogError("[WaveManager] DUPLICATE PlayWaves() detected!");
+            Debug.LogError("[Wave] DUPLICATE PlayWaves() detected!");
             yield break;
         }
         isWavesLoopRunning = true;
 
         for (currentWaveIndex = 0; currentWaveIndex < waveList.Count; currentWaveIndex++)
         {
-            UpdateWaveCounter();
-
             var wave = waveList[currentWaveIndex];
+            if (WaveRuntime.LogEnabled)
+                Debug.Log($"[Wave] >>> BEGIN Wave #{currentWaveIndex + 1}/{waveList.Count} | items={wave.items.Count}");
 
-            // Chơi 1 wave
+            UpdateWaveCounter();
             yield return StartCoroutine(PlaySingleWave(wave));
 
-            // ======== SKIP FEATURE DISABLED ========
-            // if (skipMidWaveButton) skipMidWaveButton.SetActive(false);
-            // =======================================
-
-            // Đếm ngược chuyển wave (trừ wave cuối)
             if (!IsLastWave)
             {
+                if (WaveRuntime.LogEnabled)
+                    Debug.Log($"[Wave] Wave #{currentWaveIndex + 1} done. InterDelay={wave.interWaveDelay:F2}s");
                 isSkippingDelay = false;
                 interWaveTimer = wave.interWaveDelay;
 
@@ -181,20 +320,21 @@ public class WaveManager : MonoBehaviour
         }
 
         // Hoàn tất tất cả waves -> Win
+        if (WaveRuntime.LogEnabled) Debug.Log("[Wave] ALL WAVES COMPLETED → HandleWin()");
         if (countdownText && autoHideCountdown) countdownText.gameObject.SetActive(false);
         HandleWin();
-
         isWavesLoopRunning = false;
     }
 
     // ===== Chơi 1 wave =====
     private IEnumerator PlaySingleWave(WaveDef wave)
     {
-        // Reset trạng thái của wave
         forceEndCurrentWave = false;
         killedThisWave = 0;
-        WaveRuntime.AliveCount = 0;
+        WaveRuntime.ResetAll();              // ⭐ đảm bảo sạch đếm sống từ wave trước
         runningSpawners.Clear();
+        // 🔔 Bật VFX cảnh báo trên các spawner sẽ được dùng ở wave này
+        ShowSpawnerWarningVFXForWave(wave);
 
         var sortedItems = wave.items.OrderBy(i => i.startTime).ToList();
         float waveStart = Time.time;
@@ -202,19 +342,18 @@ public class WaveManager : MonoBehaviour
         totalPlannedThisWave = sortedItems.Sum(i => i.count);
         pendingToSpawn = totalPlannedThisWave;
 
-        // ======== SKIP FEATURE DISABLED ========
-        // carryoverAppliedThisWave = 0;
-        // killedThisWaveActual = 0;
-        // if (skipMidWaveButton) skipMidWaveButton.SetActive(false);
-        // =======================================
-
-        // Cập nhật UI wave
         UpdateWaveCounter();
 
-        // Lên lịch spawn các nhóm
+        if (WaveRuntime.LogEnabled)
+            Debug.Log($"[Wave] Setup Wave: planned={totalPlannedThisWave}, aliveCap={wave.aliveCap}");
+
+        // Lên lịch spawn
         foreach (var item in sortedItems)
         {
             float targetTime = waveStart + item.startTime;
+            if (WaveRuntime.LogEnabled)
+                Debug.Log($"[Wave] Schedule group: enemyId={item.enemyId} count={item.count} startAt={item.startTime:F2}s interval={item.interval:F2}s");
+
             yield return new WaitUntil(() => Time.time >= targetTime || forceEndCurrentWave);
             if (forceEndCurrentWave) break;
 
@@ -222,59 +361,71 @@ public class WaveManager : MonoBehaviour
             runningSpawners.Add(co);
         }
 
-        // Kết thúc wave khi đã spawn hết & không còn quái sống, HOẶC bị forceEnd
+        // Watchdog: log mỗi 2s trong thời gian chờ kết thúc wave
+        float lastLog = Time.time;
         yield return new WaitUntil(() =>
-            forceEndCurrentWave || (pendingToSpawn <= 0 && WaveRuntime.AliveCount <= 0)
-        );
+        {
+            bool done = forceEndCurrentWave || (pendingToSpawn <= 0 && WaveRuntime.AliveCount <= 0);
+            if (!done && WaveRuntime.LogEnabled && Time.time - lastLog >= 2f)
+            {
+                lastLog = Time.time;
+                Debug.Log($"[Wave] Waiting end... pending={pendingToSpawn} alive={WaveRuntime.AliveCount} killedThisWave={killedThisWave}");
+            }
+            return done;
+        });
 
-        // Nếu forceEnd: dừng spawners còn lại
         if (forceEndCurrentWave)
         {
+            if (WaveRuntime.LogEnabled) Debug.LogWarning("[Wave] FORCE END current wave. Stopping spawners...");
             foreach (var co in runningSpawners)
                 if (co != null) StopCoroutine(co);
             runningSpawners.Clear();
-        }
 
-        // ======== SKIP FEATURE DISABLED ========
-        // if (skipMidWaveButton) skipMidWaveButton.SetActive(false);
-        // =======================================
+            // 🔕 Tắt & dọn VFX nếu wave bị kết thúc sớm
+            ClearSpawnerWarningVFX();
+        }
+        // 🔕 Tắt & dọn VFX cảnh báo cho wave này
+        ClearSpawnerWarningVFX();
+        if (WaveRuntime.LogEnabled)
+            Debug.Log($"[Wave] <<< END Wave #{currentWaveIndex + 1}: spawned={totalPlannedThisWave - pendingToSpawn}/{totalPlannedThisWave}, killed={killedThisWave}, alive={WaveRuntime.AliveCount}");
     }
 
-    // Khi 1 quái chết
     private void HandleEnemyDiedInWave()
     {
         killedThisWave++;
-        // ======== SKIP FEATURE DISABLED ========
-        // killedThisWaveActual++;
-        // TryUpdateSkipButtonByProgress();
-        // =======================================
+        if (WaveRuntime.LogEnabled)
+            Debug.Log($"[Wave] EnemyDied event. killedThisWave={killedThisWave} alive={WaveRuntime.AliveCount} pending={pendingToSpawn}");
     }
 
-    // ======== SKIP FEATURE DISABLED ========
-    // private void TryUpdateSkipButtonByProgress() { /* disabled */ }
-    //
-    // public void SkipMidWaveNow() { /* disabled completely */ }
-    // =======================================
-
-    // ===== Spawn nhóm trong 1 wave =====
     IEnumerator SpawnGroup(SpawnItem item, WaveDef wave)
     {
-        if (!SpawnerRegistry.Instance.TryGet(item.spawnerId, out var spawner)) yield break;
-        if (!enemyMap.TryGetValue(item.enemyId, out var enemyData)) yield break;
+        if (!SpawnerRegistry.Instance.TryGet(item.spawnerId, out var spawner))
+        {
+            Debug.LogError($"[Wave] Missing spawnerId={item.spawnerId}");
+            yield break;
+        }
+        if (!enemyMap.TryGetValue(item.enemyId, out var enemyData))
+        {
+            Debug.LogError($"[Wave] Missing enemyId={item.enemyId}");
+            yield break;
+        }
 
         for (int i = 0; i < item.count; i++)
         {
             if (forceEndCurrentWave) yield break;
 
             while (!forceEndCurrentWave && WaveRuntime.AliveCount >= wave.aliveCap)
+            {
+                if (WaveRuntime.LogEnabled)
+                    Debug.Log($"[Wave] Cap alive reached ({WaveRuntime.AliveCount}/{wave.aliveCap}), waiting spawn...");
                 yield return null;
-
+            }
             if (forceEndCurrentWave) yield break;
 
             SpawnEnemy(enemyData, spawner, item.powerMultiplier);
-
-            // giảm số còn phải spawn
             pendingToSpawn = Mathf.Max(0, pendingToSpawn - 1);
+            if (WaveRuntime.LogEnabled)
+                Debug.Log($"[Wave] Spawned {item.enemyId}  leftToSpawn={pendingToSpawn}  alive={WaveRuntime.AliveCount}");
 
             if (item.interval > 0f) yield return new WaitForSeconds(item.interval);
             else yield return null;
@@ -287,7 +438,9 @@ public class WaveManager : MonoBehaviour
         var controller = enemy.GetComponent<EnemyController>();
         if (controller != null) controller.Init(powerMultiplier);
         controller.BeginWaveLifetime();
-        WaveRuntime.AliveCount++;
+
+        // 🔴 ĐIỂM MẤU CHỐT: dùng RegisterSpawn để đếm & log
+        WaveRuntime.RegisterSpawn(enemy);
     }
 
     // ===== Utilities =====
@@ -302,9 +455,10 @@ public class WaveManager : MonoBehaviour
 
     private void ClearAllEnemies()
     {
-        var allEnemies = FindObjectsOfType<EnemyController>();
-        foreach (var e in allEnemies) e.Die();
-        WaveRuntime.AliveCount = 0;
+        var all = FindObjectsOfType<EnemyController>();
+        foreach (var e in all) e.Die();
+
+        // ❌ bỏ dòng WaveRuntime.AliveCount = 0;
     }
 
     private void HandleWin()

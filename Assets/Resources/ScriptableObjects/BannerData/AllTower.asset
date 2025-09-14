@@ -15,7 +15,9 @@ MonoBehaviour:
   allTowers:
   - {fileID: 11400000, guid: 9247d15cf457b2445b8d70abb37d1fc4, type: 2}
   - {fileID: 11400000, guid: 6042b1452ebde54499136ed20f36598c, type: 2}
-  - {fileID: 11400000, guid: 4fa645f4268bf964b9e3c23d846d0658, type: 2}
   - {fileID: 11400000, guid: b2c57c3400ec7fe4486d2dff39c095ea, type: 2}
   - {fileID: 11400000, guid: 1031148100e477640b09cf0c67f811f0, type: 2}
-  - {fileID: 11400000, guid: 462a4337dd2d421429777d31bc5895b9, type: 2}
+  - {fileID: 11400000, guid: 35b582526d6c5f44bbbecd8fdcc8dc01, type: 2}
+  - {fileID: 11400000, guid: 8482a91d2881d5848b316f29de1c405d, type: 2}
+  - {fileID: 11400000, guid: e893d2162e0263943a6351eba7b2a353, type: 2}
+  - {fileID: 11400000, guid: c39083d2a176c7b4ba6cdb1711eb4ea3, type: 2}

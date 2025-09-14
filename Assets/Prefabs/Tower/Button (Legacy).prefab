@@ -92,6 +92,7 @@ GameObject:
   - component: {fileID: 6629310902322750644}
   - component: {fileID: 5936214300031751153}
   - component: {fileID: 8785577796352180354}
+  - component: {fileID: 3594369639955739111}
   m_Layer: 5
   m_Name: Button (Legacy)
   m_TagString: Untagged
@@ -218,6 +219,21 @@ MonoBehaviour:
   icon: {fileID: 0}
   nameText: {fileID: 109418580622024353}
   costText: {fileID: 7475782313939785204}
+--- !u!114 &3594369639955739111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1910417023253978218}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4c98269acb62274682317c73e71303e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  clickSound: {fileID: 8300000, guid: 1b785be36b65c064e83fa2e5831b7700, type: 3}
+  volume: 1
+  audioSource: {fileID: 0}
 --- !u!1 &5044666862556371637
 GameObject:
   m_ObjectHideFlags: 0
@@ -310,7 +326,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 26.65
+  m_fontSize: 17.15
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -444,7 +460,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 25.65
+  m_fontSize: 15.6
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1

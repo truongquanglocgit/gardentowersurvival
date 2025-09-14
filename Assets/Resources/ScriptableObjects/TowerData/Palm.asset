@@ -9,12 +9,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: 097c4c59b126f2c42bcf98548d5b5436, type: 3}
   m_Name: Palm
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
   towerId: t5
   displayName: Palm Tree
-  icon: {fileID: 21300000, guid: 3dbc642282e3b2b4b8f63c982b633903, type: 3}
+  icon: {fileID: 21300000, guid: 39887475c7f351342a5b291ed6a5bcd0, type: 3}
   rarity: 2
   cost: 800
   range: 5

@@ -9,9 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9c15cd9b7fca494da3e99628cdd4812, type: 3}
+  m_Script: {fileID: 11500000, guid: e17dc0d8fbcfa9d45833be898c6f0a9e, type: 3}
   m_Name: FastEnemy
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
   enemyId: e2
   prefab: {fileID: 4063548656715280615, guid: 5c9633e0095f1eb40bf387cdc191bd9b, type: 3}
-  basePower: 1
