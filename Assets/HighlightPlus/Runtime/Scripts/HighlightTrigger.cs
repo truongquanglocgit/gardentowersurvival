@@ -114,6 +114,38 @@ namespace HighlightPlus {
                 }
             }
         }
+
+
+        public void Init() {
+            if (raycastCamera == null) {
+                raycastCamera = HighlightManager.GetCamera();
+            }
+            UpdateTriggers();
+            if (hb == null) {
+                hb = GetComponent<HighlightEffect>();
+            }
+            InputProxy.Init();
+        }
+
+        void Start() {
+            UpdateTriggers();
+            if (triggerMode == TriggerMode.RaycastOnThisObjectAndChildren) {
+                if (raycastCamera == null) {
+                    raycastCamera = HighlightManager.GetCamera();
+                    if (raycastCamera == null) {
+                        Debug.LogError("Highlight Trigger on " + gameObject.name + ": no camera found!");
+                    }
+                }
+            } else {
+                Collider collider = GetComponent<Collider>();
+                if (collider == null) {
+                    if (GetComponent<MeshFilter>() != null) {
+                        gameObject.AddComponent<MeshCollider>();
+                    }
+                }
+            }
+        }
+
         // Bỏ qua vài frame sau khi Game view đổi kích thước (Device Simulator)
         // để tránh pixelWidth/pixelHeight = 0 và input trả về NaN.
         const int SKIP_FRAMES_AFTER_RESIZE = 2;
@@ -173,38 +205,6 @@ namespace HighlightPlus {
             return true;
         }
 
-
-        public void Init() {
-            if (raycastCamera == null) {
-                raycastCamera = HighlightManager.GetCamera();
-            }
-            UpdateTriggers();
-            if (hb == null) {
-                hb = GetComponent<HighlightEffect>();
-            }
-            InputProxy.Init();
-        }
-
-        void Start() {
-            UpdateTriggers();
-            if (triggerMode == TriggerMode.RaycastOnThisObjectAndChildren) {
-                if (raycastCamera == null) {
-                    raycastCamera = HighlightManager.GetCamera();
-                    if (raycastCamera == null) {
-                        Debug.LogError("Highlight Trigger on " + gameObject.name + ": no camera found!");
-                    }
-                }
-            } else {
-                Collider collider = GetComponent<Collider>();
-                if (collider == null) {
-                    if (GetComponent<MeshFilter>() != null) {
-                        gameObject.AddComponent<MeshCollider>();
-                    }
-                }
-            }
-        }
-
-
         IEnumerator DoRayCast() {
             yield return null;
             WaitForEndOfFrame w = new WaitForEndOfFrame();
@@ -225,8 +225,6 @@ namespace HighlightPlus {
 
                 int hitCount;
                 bool hit = false;
-
-
 
 #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
                 if (respectUI) {
@@ -531,6 +529,5 @@ namespace HighlightPlus {
             }
         }
     }
-
 
 }

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6abd16be88f1348449e1de3ac105b9bd, type: 3}
+  m_Name: Map5
+  m_EditorClassIdentifier: Assembly-CSharp::MapData
+  mapName: Map5
+  previewImage: {fileID: 21300000, guid: cf1551993151f534b94678d2ff0e8c6b, type: 3}
+  sceneToLoad: Map5
+  waterReward: 1000
+  plantRewardList: []
+  waveList:
+  - {fileID: 11400000, guid: 86c14be7300e41e44bc6b12190b781ed, type: 2}
+  - {fileID: 11400000, guid: 9eaede84f7ef5664bbc9a132eb354321, type: 2}
+  - {fileID: 11400000, guid: ebecd735c7f75c14d93fc87bfacde5e7, type: 2}
+  - {fileID: 11400000, guid: 8f57e41e73ba6774db0a435fbbda5898, type: 2}
+  - {fileID: 11400000, guid: 52d5b39f3ee86b841b4848f80c6976c5, type: 2}
+  - {fileID: 11400000, guid: 8066b6a1cba8a2b4db4f4d30bc817a60, type: 2}
+  - {fileID: 11400000, guid: 3237c12a932b1424c96140a01752dc25, type: 2}
+  - {fileID: 11400000, guid: 60ee66f656d367041bbadf24f3903daf, type: 2}
+  - {fileID: 11400000, guid: f7613a4f33ef48b4b95e79987e6d7039, type: 2}
+  - {fileID: 11400000, guid: bffbd663186e61c4e93f2f6be12ad0db, type: 2}
+  - {fileID: 11400000, guid: c8800a4edb536ff4ab3cd4a4cb5c3dcc, type: 2}
+  - {fileID: 11400000, guid: 08b17d5cca0c72a46b16deec8db857f9, type: 2}
+  previewPrefab: {fileID: 7508046000213424466, guid: 2553a45d375cff049bd46b288d94d4bf, type: 3}
+  previewPosition: {x: 0, y: 0, z: 0}
+  previewEuler: {x: 0, y: 30, z: 0}
+  previewScale: 1

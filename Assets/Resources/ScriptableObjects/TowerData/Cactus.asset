@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
   towerId: t2
   displayName: Cactus
-  icon: {fileID: 21300000, guid: e1651d8a899476740aaf725283594a7e, type: 3}
+  icon: {fileID: 21300000, guid: 08fe576fbf1cd4c4badf277d8da7d1a0, type: 3}
   rarity: 0
   cost: 200
   range: 5

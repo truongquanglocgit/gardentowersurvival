@@ -6,10 +6,19 @@ using UnityEngine;
 
 public class Spawner : MonoBehaviour
 {
+    public GameObject arrow;
     public string SpawnerId;
     [Tooltip("Hướng quay khi spawn")]
     public Transform spawnPoint;
 
+    private void Awake()
+    {
+        
+    }
+    public void hideArrow()
+    {
+        arrow.gameObject.SetActive(false);
+    }
     private void Reset()
     {
         spawnPoint = transform;

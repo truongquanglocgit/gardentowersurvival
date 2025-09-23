@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using TMPro;    // nếu dùng TextMeshPro
 using System.Collections.Generic;
 
 public class TowerSelectUI : MonoBehaviour
@@ -27,10 +28,15 @@ public class TowerSelectUI : MonoBehaviour
                 var data = towersInMatch[i];
                 var btn = preconfiguredButtons[i];
 
-                // ✅ Gán icon vào GameObject con tên "icon"
+                // ✅ Gán icon
                 var iconImage = btn.transform.Find("icon")?.GetComponent<Image>();
                 if (iconImage != null)
                     iconImage.sprite = data.icon;
+
+                // ✅ Gán tên (Text hoặc TMP_Text)
+                var nameText = btn.transform.Find("name")?.GetComponent<TMP_Text>();
+                if (nameText != null)
+                    nameText.text = data.displayName;
 
                 btn.onClick.RemoveAllListeners();
                 btn.onClick.AddListener(() => TowerPlacer.I.SetCurrentTower(data));
@@ -43,8 +49,12 @@ public class TowerSelectUI : MonoBehaviour
                 GameObject btnObj = Instantiate(towerSlotButtonPrefab, buttonContainer);
                 TowerSlotButton btn = btnObj.GetComponent<TowerSlotButton>();
                 btn.Setup(data, TowerPlacer.I.SetCurrentTower);
+                btnObj.name = $"Button_{data.displayName}";
+                // Nếu TowerSlotButton chưa hỗ trợ name → gán thủ công
+                var nameText = btnObj.transform.Find("name")?.GetComponent<TMP_Text>();
+                if (nameText != null)
+                    nameText.text = data.displayName;
             }
         }
     }
-
 }

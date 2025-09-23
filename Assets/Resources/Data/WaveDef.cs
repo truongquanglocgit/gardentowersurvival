@@ -11,6 +11,9 @@ public class WaveDef : ScriptableObject
     public List<SpawnItem> items = new List<SpawnItem>();
      public int aliveCap = 60;          // backpressure limit
     public float interWaveDelay = 5f;  // delay sau wave (GameController dùng)
+    [Header("Boss Settings")]
+    [Tooltip("Tick nếu đây là Boss Wave (sẽ phát nhạc Boss, VFX đặc biệt...)")]
+    public bool isBossWave = false;
 }
 [Serializable]
 public class SpawnItem

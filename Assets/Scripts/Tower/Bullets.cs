@@ -4,6 +4,25 @@ using System.Collections.Generic;
 [RequireComponent(typeof(Collider))]
 public class Bullets : MonoBehaviour
 {
+    [Header("AOE")]
+    
+    public bool isAoeDamage = false;
+    [Min(0f)] public float aoeRadius = 0f;
+    public LayerMask enemyMask = ~0;
+
+    [Header("AOE Fallback (no-collider)")]
+    [SerializeField] bool aoeEnableFallbackNoCollider = true; // ✅ bật Fallback theo EnemyController
+    [SerializeField] int aoeMaxPerHit = 64;                  // giới hạn nạn nhân/lần nổ
+    [SerializeField] bool debugAoe = false;                   // log & vẽ debug
+
+    [Header("AOE Safeguards")]
+    [SerializeField] bool aoeUsePhysicsOnly = true; // ✅ chỉ dựa vào OverlapSphere, KHÔNG fallback theo tag
+    [SerializeField] bool aoeClampByDistanceOnEach = true; // ✅ double-check từng enemy theo distance
+    
+    // --- Arc impact lock ---
+    Vector3 impactLockPos;      // điểm rơi được "khóa" khi bắt đầu hạ
+    float descendTimeout = 2.5f;   // tối đa X giây cho pha hạ
+    float descendTimer = 0f;
     // ====== VFX Prefabs ======
     [Header("VFX")]
     [Tooltip("Hiệu ứng lúc bắn ở nòng (muzzle flash / start explosion)")]
@@ -16,6 +35,17 @@ public class Bullets : MonoBehaviour
 
     [Tooltip("Nếu không dùng pool VFX: Auto destroy object sau thời lượng particle")]
     [SerializeField] private bool autoDestroyVFX = true;
+    // +++++ AOE → VFX SCALING +++++
+    [Header("AOE VFX Scaling")]
+    [SerializeField] bool scaleStartVFXWithAoe = false;   // bật nếu muốn muzzle cũng to ra theo AOE
+    [SerializeField] bool scaleHitVFXWithAoe = true;    // thường bật: vụ nổ to bằng bán kính AOE
+    [Min(0.01f)][SerializeField] float baseVFXScale = 1f;   // scale gốc
+    [Min(0f)][SerializeField] float vfxScalePerMeter = 1.0f; // mỗi 1m radius tăng thêm bao nhiêu scale
+    [SerializeField] float vfxMinScale = 0.4f;
+    [SerializeField] float vfxMaxScale = 8f;
+
+    [SerializeField] bool setShapeRadius = true;          // nếu prefab dùng Shape (Sphere/Circle), set radius luôn
+    [Range(0f, 2f)][SerializeField] float shapeRadiusFactor = 1.0f; // nhân lên/giảm bớt so với aoeRadius
 
     // ====== SFX Clips ======
     [Header("SFX")]
@@ -30,7 +60,10 @@ public class Bullets : MonoBehaviour
     [Tooltip("Prefab AudioSource 1-shot (spatialBlend=1). Bỏ trống sẽ fallback PlayClipAtPoint.")]
     [SerializeField] private AudioSource audioOneShotPrefab;
     [SerializeField] private int audioPoolCapacity = 8;
-
+    // === ROUTE SFX QUA AUDIOSOURCE (thay vì PlayClipAtPoint) ===
+    [Header("SFX Routing (AudioSource)")]
+    [SerializeField] private AudioSource startSFXSource; // phát tiếng ở nòng súng
+    [SerializeField] private AudioSource hitSFXSource;   // phát tiếng va chạm
     // ====== Aim & Flight ======
     [Header("Aim")]
     [SerializeField] float defaultAimYOffset = 0.6f;
@@ -105,6 +138,7 @@ public class Bullets : MonoBehaviour
                 _audioPool.Enqueue(src);
             }
         }
+        EnsureSFXSources(); // 🔊 chuẩn bị 2 AudioSource dùng chung cho viên đạn
     }
 
     void OnEnable()
@@ -123,6 +157,34 @@ public class Bullets : MonoBehaviour
 
         if (forceEnableHierarchyOnEnable)
             ForceEnableHierarchy();
+    }
+    float ComputeAoeVFXScale()
+    {
+        float s = baseVFXScale + aoeRadius * vfxScalePerMeter;
+        return Mathf.Clamp(s, vfxMinScale, vfxMaxScale);
+    }
+
+    void ApplyAoeScaling(ParticleSystem fx)
+    {
+        if (!fx) return;
+
+        // đảm bảo transform scale ảnh hưởng tới particle
+        var main = fx.main;
+        main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+
+        // scale transform theo bán kính AOE
+        float s = ComputeAoeVFXScale();
+        fx.transform.localScale = Vector3.one * s;
+
+        // nếu VFX có Shape (Sphere/Cone/Circle) → chỉnh bán kính để vòng nổ “chạm mép” AOE
+        if (setShapeRadius)
+        {
+            var shape = fx.shape;
+            if (shape.enabled)
+            {
+                shape.radius = aoeRadius * shapeRadiusFactor;
+            }
+        }
     }
 
     void Start()
@@ -164,14 +226,20 @@ public class Bullets : MonoBehaviour
         {
             if (startVFXPrefab)
             {
-                Transform parent = parentStartVFXToFirePoint ? firePoint : null;
-                SpawnVFX(startVFXPrefab, firePoint.position, firePoint.rotation, parent);
+                var v = Instantiate(startVFXPrefab, firePoint.position, firePoint.rotation,
+                                    parentStartVFXToFirePoint ? firePoint : null);
+                if (scaleStartVFXWithAoe && isAoeDamage) ApplyAoeScaling(v);
+                v.Play(true);
+                if (autoDestroyVFX) Destroy(v.gameObject, v.main.duration + v.main.startLifetime.constant + 0.1f);
             }
             if (startSFX)
             {
-                PlayOneShotAt(startSFX, firePoint.position, sfxVolume);
+                // was: PlayOneShotAt(startSFX, firePoint.position, sfxVolume);
+                EnsureSFXSources();
+                PlaySFX(startSFXSource, startSFX, firePoint.position, sfxVolume);
             }
         }
+
     }
 
     public void SetTargetWithOffset(Transform t, Transform fireOrigin, float yOffset)
@@ -191,9 +259,12 @@ public class Bullets : MonoBehaviour
             }
             if (startSFX)
             {
-                PlayOneShotAt(startSFX, firePoint.position, sfxVolume);
+                // was: PlayOneShotAt(startSFX, firePoint.position, sfxVolume);
+                EnsureSFXSources();
+                PlaySFX(startSFXSource, startSFX, firePoint.position, sfxVolume);
             }
         }
+
     }
 
     public void StartArcFlight(float apexHeight, float upTime, float descendSpeedMultiplier = 1.2f, bool terminalHoming = true)
@@ -211,9 +282,14 @@ public class Bullets : MonoBehaviour
         float topY = Mathf.Max(arcStartPos.y, currentAim.y) + Mathf.Max(0.1f, apexHeight);
         arcApexPos = new Vector3(mid.x, topY, mid.z);
 
+        // 🔒 Khóa điểm rơi mặc định ngay bây giờ
+        impactLockPos = currentAim;
+
         mode = FlightMode.ArcAscend;
         arcTimer = 0f;
+        descendTimer = 0f;
     }
+
 
     void Update()
     {
@@ -274,11 +350,22 @@ public class Bullets : MonoBehaviour
 
     void TickArcDescend()
     {
-        Vector3 aimPos = lastKnownTargetPos;
-        Vector3 dir = aimPos - transform.position;
+        // Cập nhật "điểm rơi" nếu cho phép homing
+        if (terminalHoming && target && target.gameObject.activeInHierarchy)
+            impactLockPos = target.position + shotAimOffset;
+
+        Vector3 dir = impactLockPos - transform.position;
         float step = speed * descendSpeedMul * Time.deltaTime;
 
-        if (dir.magnitude <= step)
+        // Điều kiện nổ:
+        // - chạm/đủ gần điểm rơi
+        // - hoặc đã hạ quá lâu (timeout)
+        // - hoặc viên đạn rơi thấp hơn điểm rơi 0.1m (tránh lướt qua)
+        descendTimer += Time.deltaTime;
+        bool timeout = descendTimer >= descendTimeout;
+        bool below = transform.position.y <= impactLockPos.y + 0.1f;
+
+        if (dir.magnitude <= step || timeout || below)
         {
             Hit();
             return;
@@ -289,20 +376,20 @@ public class Bullets : MonoBehaviour
 
         if (orientToVelocity && move.sqrMagnitude > 0.000001f)
             transform.rotation = Quaternion.LookRotation(move, Vector3.up);
-
-        if ((target == null || !target.gameObject.activeInHierarchy) &&
-            (transform.position - aimPos).sqrMagnitude <= step * step * 1.5f)
-        {
-            Hit();
-        }
     }
+
 
     private void OnTriggerEnter(Collider other)
     {
         if (_spent) return;
+
+        // ❗ Với ARC, bỏ qua va chạm giữa không trung để tránh nổ sớm
+        if (mode == FlightMode.ArcAscend || mode == FlightMode.ArcDescend)
+            return;
+
         if (other.CompareTag("Enemy"))
         {
-            Hit();
+            Hit(); // straight đụng là nổ
         }
     }
 
@@ -314,28 +401,166 @@ public class Bullets : MonoBehaviour
         Vector3 impactPos = transform.position;
         Quaternion impactRot = transform.rotation;
 
-        EnemyController enemy = null;
-        if (target != null) enemy = target.GetComponentInParent<EnemyController>();
-
-        if (enemy != null && !enemy.IsDead)
+        // --- Gây damage ---
+        if (isAoeDamage && aoeRadius > 0.01f)
         {
-            switch (bulletType)
+            LayerMask preferredMask = (enemyMask.value != 0)
+                ? enemyMask
+                : (LayerMask)LayerMask.GetMask("Enemy");   // 👈 ép kiểu int -> LayerMask
+
+            var victims = _GetAoeVictims(impactPos, aoeRadius, preferredMask);
+            foreach (var ec in victims) _ApplyBulletEffect(ec);
+        }
+        else
+        {
+            // Single target: ưu tiên target còn sống; nếu không có thì ray tìm gần nhất trong bán kính nhỏ
+            EnemyController enemy = null;
+            if (target) enemy = target.GetComponentInParent<EnemyController>();
+
+            if (!enemy)
             {
-                case BulletType.Normal: enemy.TakeDamage(damage); break;
-                case BulletType.Fire: enemy.TakeDamage(damage); if (enemy.isActiveAndEnabled) enemy.ApplyBurn(5f, 1f); break;
-                case BulletType.Ice: enemy.TakeDamage(damage); if (enemy.isActiveAndEnabled) enemy.ApplySlow(0.5f, 2f); break;
-                case BulletType.Poison: if (enemy.isActiveAndEnabled) enemy.ApplyPoison(3f, 1f, 1f); break;
-                case BulletType.Stun: enemy.TakeDamage(damage); if (enemy.isActiveAndEnabled) enemy.ApplyStun(2f); break;
+                // fallback: tìm enemy gần điểm nổ nhất trong bán kính nhỏ
+                var victims = _GetAoeVictims(impactPos, 0.6f, enemyMask);
+                float best = float.PositiveInfinity;
+                foreach (var ec in victims)
+                {
+                    float d2 = (ec.transform.position - impactPos).sqrMagnitude;
+                    if (d2 < best) { best = d2; enemy = ec; }
+                }
             }
+            if (enemy && !enemy.IsDead) _ApplyBulletEffect(enemy);
         }
 
-        // --- HIT VFX/SFX ---
-        if (hitVFXPrefab) SpawnVFX(hitVFXPrefab, impactPos, impactRot, null);
-        if (hitSFX) PlayOneShotAt(hitSFX, impactPos, sfxVolume);
+        // --- VFX/SFX ---
+        if (hitVFXPrefab)
+        {
+            var v = Instantiate(hitVFXPrefab, impactPos, impactRot, null);
+            if (scaleHitVFXWithAoe && isAoeDamage) ApplyAoeScaling(v);
+            v.Play(true);
+            if (autoDestroyVFX) Destroy(v.gameObject, v.main.duration + v.main.startLifetime.constant + 0.1f);
+        }
+        if (hitSFX) { EnsureSFXSources(); PlaySFX(hitSFXSource, hitSFX, impactPos, sfxVolume); }
 
         ResetBullet();
     }
+    // Buffer/sets dùng chung
+    static readonly Collider[] _buf = new Collider[128];
+    static readonly HashSet<EnemyController> _unique = new HashSet<EnemyController>();
 
+    List<EnemyController> _GetAoeVictims(Vector3 center, float radius, LayerMask preferredMask)
+    {
+        _unique.Clear();
+        float r2 = radius * radius;
+        int preferred = preferredMask.value;
+
+        // 1) Thử physics trước (nếu sau này bạn thêm collider sẽ hoạt động ngay)
+        int n = Physics.OverlapSphereNonAlloc(center, radius, _buf, ~0, QueryTriggerInteraction.Collide);
+        int max = Mathf.Min(n, _buf.Length);
+
+        for (int i = 0; i < max; i++)
+        {
+            var col = _buf[i]; if (!col) continue;
+            // bỏ chính collider của viên đạn (nếu có)
+            if (col.transform.IsChildOf(transform)) continue;
+
+            EnemyController ec = null;
+            if (col.attachedRigidbody) ec = col.attachedRigidbody.GetComponent<EnemyController>();
+            if (!ec) ec = col.GetComponentInParent<EnemyController>() ?? col.GetComponent<EnemyController>();
+            if (ec == null || ec.IsDead) continue;
+
+            // nếu user set mask, yêu cầu collider hoặc root của enemy nằm trong mask
+            if (preferred != 0)
+            {
+                int colBit = 1 << col.gameObject.layer;
+                int ecBit = 1 << ec.gameObject.layer;
+                if ((colBit & preferred) == 0 && (ecBit & preferred) == 0) continue;
+            }
+
+            // chốt bằng khoảng cách thật (closest point nếu có collider; nếu không dùng aim pos)
+            Vector3 p = col.enabled ? col.ClosestPoint(center) : _GetEnemyAimPos(ec);
+            if ((p - center).sqrMagnitude > r2) continue;
+
+            _unique.Add(ec);
+            if (_unique.Count >= aoeMaxPerHit) break;
+        }
+
+        // 2) Nếu KHÔNG thu được ai và cho phép fallback → quét theo EnemyController (KHÔNG cần collider)
+        if (_unique.Count == 0 && aoeEnableFallbackNoCollider)
+        {
+            // chỉ lấy enemy đang active trong scene
+            var all = FindObjectsOfType<EnemyController>(false);
+            for (int i = 0; i < all.Length; i++)
+            {
+                var ec = all[i]; if (!ec || ec.IsDead) continue;
+
+                // ❌ ĐỪNG lọc theo layer trong fallback (enemy root có thể không ở layer "Enemy")
+                // if (preferred != 0) { ... }  ---> BỎ KHỐI NÀY
+
+                // ✅ Lọc theo khoảng cách tới điểm aim/transform
+                Vector3 p = _GetEnemyAimPos(ec);
+                if ((p - center).sqrMagnitude > r2) continue;
+
+                _unique.Add(ec);
+                if (_unique.Count >= aoeMaxPerHit) break;
+            }
+        }
+
+
+        if (debugAoe)
+            Debug.Log($"[AOE] victims={_unique.Count} radius={radius} (preferredMask={preferredMask.value})");
+
+        var list = new List<EnemyController>(_unique.Count);
+        foreach (var ec in _unique) list.Add(ec);
+        return list;
+    }
+
+    // Lấy điểm aim “đúng” ngay cả khi không có collider:
+    // - Ưu tiên AimPoint tên như TowerController đang dùng
+    // - Nếu không có, dùng transform.position + defaultYOffset của tower
+    Vector3 _GetEnemyAimPos(EnemyController ec)
+    {
+        Transform t = ec.transform;
+        string aimName = (towerController != null) ? towerController.aimPointChildName : "Target";
+        if (!string.IsNullOrEmpty(aimName))
+        {
+            var aim = t.Find(aimName);
+            if (aim) return aim.position;
+        }
+        float yOff = (towerController != null) ? towerController.defaultAimYOffset : 0.6f;
+        return t.position + Vector3.up * yOff;
+    }
+
+
+    static Vector3 GetBestClosestPoint(EnemyController ec, Vector3 center)
+    {
+        Vector3 best = ec.transform.position;
+        float bestD2 = float.PositiveInfinity;
+
+        var cols = ec.GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < cols.Length; i++)
+        {
+            var col = cols[i]; if (!col || !col.enabled) continue;
+            Vector3 p = col.ClosestPoint(center);
+            float d2 = (p - center).sqrMagnitude;
+            if (d2 < bestD2) { bestD2 = d2; best = p; }
+        }
+        return best;
+    }
+
+
+
+    // Áp sát thương + hiệu ứng theo BulletType
+    void _ApplyBulletEffect(EnemyController enemy)
+    {
+        switch (bulletType)
+        {
+            case BulletType.Normal: enemy.TakeDamage(damage); break;
+            case BulletType.Fire: enemy.TakeDamage(damage); if (enemy.isActiveAndEnabled) enemy.ApplyBurn(5f, 1f); break;
+            case BulletType.Ice: enemy.TakeDamage(damage); if (enemy.isActiveAndEnabled) enemy.ApplySlow(0.5f, 2f); break;
+            case BulletType.Poison: if (enemy.isActiveAndEnabled) enemy.ApplyPoison(3f, 1f, 1f); break;
+            case BulletType.Stun: enemy.TakeDamage(damage); if (enemy.isActiveAndEnabled) enemy.ApplyStun(2f); break;
+        }
+    }
     void ResetBullet()
     {
         target = null;
@@ -372,23 +597,8 @@ public class Bullets : MonoBehaviour
     // ====== SFX Helpers ======
     private void PlayOneShotAt(AudioClip clip, Vector3 pos, float volume)
     {
-        if (!clip) return;
-
-        if (useAudioPool && audioOneShotPrefab && _audioPool != null && _audioPool.Count > 0)
-        {
-            var src = _audioPool.Dequeue();
-            src.transform.position = pos;
-            src.gameObject.SetActive(true);
-            src.spatialBlend = 1f;         // 3D
-            src.rolloffMode = AudioRolloffMode.Logarithmic;
-            src.PlayOneShot(clip, Mathf.Clamp01(volume));
-            StartCoroutine(ReturnAudioAfter(src, clip.length));
-        }
-        else
-        {
-            // Fallback nhanh gọn (có tạo GO tạm)
-            AudioSource.PlayClipAtPoint(clip, pos, Mathf.Clamp01(volume));
-        }
+        EnsureSFXSources();
+        PlaySFX(hitSFXSource, clip, pos, volume);
     }
 
     private System.Collections.IEnumerator ReturnAudioAfter(AudioSource src, float delay)
@@ -430,6 +640,36 @@ public class Bullets : MonoBehaviour
                 ps.Clear(true);
                 ps.Play(true);
             }
+    }
+    void EnsureSFXSources()
+    {
+        if (!startSFXSource)
+        {
+            var go = new GameObject("StartSFXSource");
+            go.transform.SetParent(transform, false);
+            startSFXSource = go.AddComponent<AudioSource>();
+            startSFXSource.playOnAwake = false;
+            startSFXSource.spatialBlend = 1f;
+            startSFXSource.rolloffMode = AudioRolloffMode.Linear;
+            startSFXSource.maxDistance = 25f;
+        }
+        if (!hitSFXSource)
+        {
+            var go = new GameObject("HitSFXSource");
+            go.transform.SetParent(transform, false);
+            hitSFXSource = go.AddComponent<AudioSource>();
+            hitSFXSource.playOnAwake = false;
+            hitSFXSource.spatialBlend = 1f;
+            hitSFXSource.rolloffMode = AudioRolloffMode.Linear;
+            hitSFXSource.maxDistance = 25f;
+        }
+    }
+
+    static void PlaySFX(AudioSource src, AudioClip clip, Vector3 worldPos, float volume = 1f)
+    {
+        if (!src || !clip) return;
+        src.transform.position = worldPos;
+        src.PlayOneShot(clip, Mathf.Clamp01(volume));
     }
 
     public enum BulletType { Normal, Fire, Ice, Poison, Stun }

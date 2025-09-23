@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23ea7baef1366cb4886851269c613015, type: 3}
+  m_Name: Step1
+  m_EditorClassIdentifier: 
+  stepId: s1
+  mode: 1
+  chatText: 
+  speakerAvatar: {fileID: 0}
+  chatBubbleOffset: {x: 0, y: 120}
+  resolveMode: 2
+  uiTargetRef: {fileID: 0}
+  targetName: Mapstart
+  targetTag: 
+  findTimeout: 8
+  requireButtonClick: 1
+  requiredButtonChildName: 
+  showFocus: 1
+  focusPadding: {x: 16, y: 16}
+  showPointerArrow: 0

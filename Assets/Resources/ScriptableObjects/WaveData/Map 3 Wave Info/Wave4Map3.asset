@@ -34,3 +34,4 @@ MonoBehaviour:
     powerMultiplier: 2
   aliveCap: 60
   interWaveDelay: 5
+  isBossWave: 1

@@ -17,7 +17,7 @@ MonoBehaviour:
   - startTime: 2
     spawnerId: s1
     enemyId: boss
-    count: 1
+    count: 2
     interval: 1
     powerMultiplier: 6
   - startTime: 2
@@ -46,3 +46,4 @@ MonoBehaviour:
     powerMultiplier: 4
   aliveCap: 60
   interWaveDelay: 5
+  isBossWave: 1
