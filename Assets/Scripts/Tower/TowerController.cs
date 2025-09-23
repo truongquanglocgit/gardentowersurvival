@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -12,28 +12,44 @@ using UnityEngine.UI;
 /// </summary>
 public class TowerController : MonoBehaviour, IUpgradableTower
 {
-    // ====================== LASER & MELEE FX/SOUND ======================
-    [Header("Laser Tick FX / SFX")]
-    [SerializeField] private GameObject laserMuzzleVFX;      // VFX xuất phát ở firePoint
-    [SerializeField] private GameObject laserImpactVFX;      // VFX tại mục tiêu mỗi tick
-    [SerializeField] private float laserVFXLifetime = 0.8f;  // tự hủy sau X giây
-    [SerializeField] private AudioClip laserTickSFX;         // âm tick (bắn trúng)
-    [SerializeField] private float laserSFXVolume = 0.8f;
-    [Header("Laser Visual")]
-    [SerializeField] private float laserStartWidth = 0.05f;
-    [SerializeField] private float laserEndWidth = 0.05f;
-    [Header("Melee Hit SFX")]
-    [SerializeField] private AudioClip meleeHitSFX;          // âm khi vung trúng 1 mục tiêu
-    [SerializeField] private float meleeSFXVolume = 0.9f;
-    // ======= BULLET POOL (round-robin) =======
-    [Header("Multi Bullet Pool (optional)")]
-    [SerializeField] private bool useMultiBulletPool = false;     // BẬT: dùng luân phiên nhiều viên
-    [SerializeField] private List<GameObject> bulletPool = new List<GameObject>();
-    [SerializeField] private bool autoCollectFromChildren = true; // tự gom các child làm pool
+    // ====== Underground filtering ======
+    [Header("Underground / Hidden Filtering")]
+    [Tooltip("Tên layer khi enemy đang chui dưới đất (EnemyBurrow nên chuyển sang layer này).")]
+    public string undergroundLayerName = "Underground";
+    [Tooltip("Bật để tower bỏ qua enemy đang ở dưới đất.")]
+    public bool skipUndergroundEnemies = true;
+    // ====================== SFX ROUTING (AudioSource) ======================
+    [Header("SFX Routing (via AudioSource)")]
+[SerializeField] private AudioSource meleeSFXSource;   // 3D source cho melee hit
+[SerializeField] private AudioSource laserSFXSource;   // 3D source cho laser tick
+// Gợi ý: gán Output = SFX mixer group trong Inspector để control volume chung
+// === Upgrade SFX ===
+[Header("Upgrade SFX")]
+[SerializeField] private AudioClip upgradeSFX;
+[SerializeField, Range(0f, 1f)] private float upgradeSFXVolume = 0.9f;
+[SerializeField] private AudioSource upgradeSFXSource; // route qua mixer SFX                                       // ====================== LASER & MELEE FX/SOUND ======================
+[Header("Laser Tick FX / SFX")]
+[SerializeField] private GameObject laserMuzzleVFX;      // VFX xuất phát ở firePoint
+[SerializeField] private GameObject laserImpactVFX;      // VFX tại mục tiêu mỗi tick
+[SerializeField] private float laserVFXLifetime = 0.8f;  // tự hủy sau X giây
+[SerializeField] private AudioClip laserTickSFX;         // âm tick (bắn trúng)
+[SerializeField] private float laserSFXVolume = 0.8f;
+[Header("Laser Visual")]
+[SerializeField] private float laserStartWidth = 0.05f;
+[SerializeField] private float laserEndWidth = 0.05f;
+[Header("Melee Hit SFX")]
+[SerializeField] private AudioClip meleeHitSFX;          // âm khi vung trúng 1 mục tiêu
+[SerializeField] private float meleeSFXVolume = 0.9f;
+// ======= BULLET POOL (round-robin) =======
+[Header("Multi Bullet Pool (optional)")]
+[SerializeField] private bool useMultiBulletPool = false;     // BẬT: dùng luân phiên nhiều viên
+[SerializeField] private List<GameObject> bulletPool = new List<GameObject>();
+[SerializeField] private bool autoCollectFromChildren = true; // tự gom các child làm pool
     private int _poolIndex = 0;
 
-    // ====================== CHỌN KIỂU TẤN CÔNG ======================
-    [Header("Attack Mode")]
+
+// ====================== CHỌN KIỂU TẤN CÔNG ======================
+[Header("Attack Mode")]
     public bool isMelee = false;
     [Header("Melee")]
     public LayerMask enemyMask = ~0;          // Nên set trong Inspector chỉ layer Enemy
@@ -44,7 +60,7 @@ public class TowerController : MonoBehaviour, IUpgradableTower
     static readonly HashSet<EnemyController> _uniqueVictims = new HashSet<EnemyController>();
     [Header("Melee (single target)")]
     public LayerMask meleeEnemyMask = ~0;   // NÊN set chỉ Layer "Enemy" trong Inspector
-    
+
 
     public bool isLaser = false;   // nếu cả hai false -> Bullet (straight hoặc arc)
 
@@ -257,7 +273,7 @@ public class TowerController : MonoBehaviour, IUpgradableTower
     // ====================== LIFECYCLE ======================
     void Awake()
     {
-        
+
         if (!anim) anim = GetComponentInChildren<Animator>(true);
 
         if (bulletObject != null)
@@ -286,7 +302,11 @@ public class TowerController : MonoBehaviour, IUpgradableTower
             }
             if (line) { line.positionCount = 2; line.enabled = false; }
         }
-        
+        // === SFX sources ===
+        EnsureAudioSources();
+
+        // === AOE mask mặc định ===
+        if (arcEnemyMask.value == 0) arcEnemyMask = meleeEnemyMask;
     }
 
     void Start()
@@ -401,11 +421,13 @@ public class TowerController : MonoBehaviour, IUpgradableTower
         }
 
         // 5) Mất target → retarget
-        if (target == null || target.GetComponent<EnemyController>()?.IsDead == true ||
+        var curEC = target ? target.GetComponent<EnemyController>() : null;
+        if (target == null || curEC == null || curEC.IsDead || IsUndergroundEnemy(curEC) ||
             (target.position - transform.position).sqrMagnitude > range * range)
         {
             FindTarget(true);
         }
+
 
         // 6) Xoay yaw về target (nếu có)
         if (target)
@@ -591,31 +613,37 @@ public class TowerController : MonoBehaviour, IUpgradableTower
         // --- ARC SHOT ---
         if (arcShot)
         {
-            float period = (arcFlightTime > 0f)
+            // thời gian bay chỉ để tính quỹ đạo/velocity (nếu dùng)
+            float periodForFlight = (arcFlightTime > 0f)
                 ? arcFlightTime
                 : Mathf.Max(0.25f, 0.9f / Mathf.Max(0.0001f, fireRate));
 
             proj.transform.position = firePoint.position;
             proj.transform.rotation = Quaternion.LookRotation((aimPos - firePoint.position).normalized, Vector3.up);
 
-            // set damage cho viên này
+            // damage cho viên này
             SetBulletDamageOn(bs, proj, CurrentDamage);
 
-            ActivateHierarchy(proj); // bật cả cây con
+            ActivateHierarchy(proj);
 
             if (rb != null)
             {
                 rb.isKinematic = false;
                 rb.useGravity = true;
-                rb.velocity = ComputeBallisticVelocity(firePoint.position, aimPos, period, Physics.gravity.y);
+                rb.velocity = ComputeBallisticVelocity(firePoint.position, aimPos, periodForFlight, Physics.gravity.y);
             }
 
             if (bs != null)
             {
-                // truyền lại TowerController (nếu prefab chưa set)
                 if (!bs.towerController) bs.towerController = this;
+
+                // ✅ truyền AOE xuống viên đạn
+                bs.isAoeDamage = arcImpactRadius > 0.01f;
+                bs.aoeRadius = Mathf.Max(0f, arcImpactRadius);
+                bs.enemyMask = arcEnemyMask.value != 0 ? arcEnemyMask : meleeEnemyMask;
+
                 bs.SetTarget(aimT, firePoint);
-                // nếu dùng flight nội bộ của Bullets
+                // flight nội bộ (không liên quan cooldown)
                 bs.StartArcFlight(
                     apexHeight: Mathf.Max(0.1f, arcApexHeight),
                     upTime: Mathf.Clamp(arcFlightTime * 0.4f, 0.08f, 0.6f),
@@ -625,13 +653,16 @@ public class TowerController : MonoBehaviour, IUpgradableTower
             }
             else
             {
-                // không có script -> dùng bezier coroutine hiện có
-                StartCoroutine(ArcBezierFlight(proj, firePoint.position, aimPos, period, arcApexHeight, CurrentDamage));
+                // Bezier fallback vẫn dùng AOE ở TowerController
+                StartCoroutine(ArcBezierFlight(proj, firePoint.position, aimPos, periodForFlight, arcApexHeight, CurrentDamage));
             }
 
-            ScheduleNextShot(period);
+            // ✅ Cooldown NHẤT QUÁN theo AttackSpeed
+            float periodStraights = 1f / Mathf.Max(0.0001f, fireRate);
+            ScheduleNextShot(periodStraights);
             return;
         }
+
 
         // --- BẮN THẲNG ---
         Quaternion look = Quaternion.LookRotation((aimPos - firePoint.position).normalized, Vector3.up);
@@ -808,7 +839,7 @@ public class TowerController : MonoBehaviour, IUpgradableTower
     {
         var ec = target ? target.GetComponent<EnemyController>() : null;
         if (ec == null || ec.IsDead) return;
-
+        if (IsUndergroundEnemy(ec)) return;
         float tickDmg = (damagePerTickOverride > 0f)
             ? damagePerTickOverride
             : (CurrentDamage * dpsMultiplier * Mathf.Max(0.01f, tickInterval));
@@ -832,7 +863,7 @@ public class TowerController : MonoBehaviour, IUpgradableTower
 
             // Âm thanh tick (tại vị trí va chạm để nghe dễ)
             if (laserTickSFX)
-                PlayOneShot3D(laserTickSFX, hitPos, laserSFXVolume);
+                PlaySFX(laserSFXSource, laserTickSFX, hitPos, laserSFXVolume);
         }
     }
 
@@ -883,7 +914,7 @@ public class TowerController : MonoBehaviour, IUpgradableTower
         {
             var ec = target.GetComponent<EnemyController>();
             float distSqr = (target.position - transform.position).sqrMagnitude;
-            if (IsAlive(ec) && distSqr <= range * range) return; // giữ target cũ
+            if (IsTargetable(ec) && distSqr <= range * range) return; // giữ target cũ
         }
         target = AcquireTarget();
     }
@@ -900,18 +931,17 @@ public class TowerController : MonoBehaviour, IUpgradableTower
         {
             if (!go) continue;
             var ec = go.GetComponent<EnemyController>();
-            if (!IsAlive(ec)) continue;
+            if (!IsTargetable(ec)) continue; // 👈 thêm dòng này
 
             float distSqr = (go.transform.position - myPos).sqrMagnitude;
             if (distSqr > rangeSqr) continue;
 
             float hp = GetEnemyHP(ec);
             float metric = 0f;
-
             switch (TargetingMode)
             {
-                case TargetMode.First: metric = -distSqr; break;                 // gần nhất
-                case TargetMode.Last: metric = distSqr; break;                   // xa nhất
+                case TargetMode.First: metric = -distSqr; break;
+                case TargetMode.Last: metric = distSqr; break;
                 case TargetMode.Strongest: metric = hp * 1e5f - distSqr; break;
                 case TargetMode.Weakest: metric = -hp * 1e5f - distSqr; break;
             }
@@ -920,6 +950,7 @@ public class TowerController : MonoBehaviour, IUpgradableTower
         }
         return best;
     }
+
 
     // Tính vận tốc ban đầu để từ p0 tới p1 trong thời gian T với gia tốc gY
     Vector3 ComputeBallisticVelocity(Vector3 p0, Vector3 p1, float T, float gY)
@@ -974,49 +1005,71 @@ public class TowerController : MonoBehaviour, IUpgradableTower
         bool usedMask = arcEnemyMask.value != 0;
         int hitCount = 0;
 
+        // === NEW: thu nạn nhân unique để tránh hit trùng collider ===
+        _uniqueVictims.Clear();
+
         if (arcImpactRadius > 0.01f)
         {
-            Collider[] buf = Physics.OverlapSphere(end, arcImpactRadius,
-                usedMask ? arcEnemyMask : ~0, QueryTriggerInteraction.Ignore);
+            // 1) Thử OverlapSphere với layer mask (nếu có), BAO GỒM cả TRIGGER
+            Collider[] buf = Physics.OverlapSphere(
+                end,
+                arcImpactRadius,
+                usedMask ? arcEnemyMask : ~0,
+                QueryTriggerInteraction.Collide // <<<< đổi từ Ignore -> Collide
+            );
 
             if (buf != null && buf.Length > 0)
             {
                 for (int i = 0; i < buf.Length; i++)
                 {
-                    var ec = buf[i].GetComponentInParent<EnemyController>() ?? buf[i].GetComponent<EnemyController>();
-                    if (ec != null && !ec.IsDead)
-                    {
-                        ec.TakeDamage(damage);
-                        hitCount++;
-                    }
+                    var c = buf[i]; if (!c) continue;
+
+                    EnemyController ec = null;
+                    if (c.attachedRigidbody)
+                        ec = c.attachedRigidbody.GetComponent<EnemyController>();
+                    if (!ec)
+                        ec = c.GetComponentInParent<EnemyController>() ?? c.GetComponent<EnemyController>();
+
+                    if (ec != null && IsTargetable(ec))
+    _uniqueVictims.Add(ec);
                 }
             }
-            if (!usedMask && hitCount == 0)
+
+            // 2) Fallback “an toàn”: nếu chưa có nạn nhân nào (mask cấu hình sai chẳng hạn) → quét theo tag trong bán kính
+            if (_uniqueVictims.Count == 0)
             {
                 var tagged = GameObject.FindGameObjectsWithTag("Enemy");
-                foreach (var go in tagged)
+                float r2 = arcImpactRadius * arcImpactRadius;
+                for (int i = 0; i < tagged.Length; i++)
                 {
-                    var ec = go.GetComponent<EnemyController>();
-                    if (ec && !ec.IsDead && (go.transform.position - end).sqrMagnitude <= arcImpactRadius * arcImpactRadius)
-                    {
-                        ec.TakeDamage(damage);
-                        hitCount++;
-                    }
+                    var go = tagged[i]; if (!go) continue;
+                    var ec = go.GetComponent<EnemyController>(); if (!ec || ec.IsDead) continue;
+
+                    // Dùng collider gần nhất nếu có, chính xác hơn pos root
+                    var col = go.GetComponentInChildren<Collider>();
+                    Vector3 p = col ? col.ClosestPoint(end) : go.transform.position;
+                    if ((p - end).sqrMagnitude <= r2)
+                        _uniqueVictims.Add(ec);
                 }
+            }
+
+            // 3) Gây damage cho tất cả nạn nhân unique
+            foreach (var ec in _uniqueVictims)
+            {
+                ec.TakeDamage(damage);
+                hitCount++;
             }
         }
         else
         {
+            // Radius ~ 0: chỉ mục tiêu chính (giữ logic cũ)
             var ec = target ? target.GetComponent<EnemyController>() : null;
-            if (ec != null && !ec.IsDead && (ec.transform.position - end).sqrMagnitude <= 1.0f)
+            if (ec != null && IsTargetable(ec) && (ec.transform.position - end).sqrMagnitude <= 1.0f)
             {
                 ec.TakeDamage(damage);
                 hitCount = 1;
             }
         }
-
-        if (proj != null) proj.SetActive(false);
-        if (bulletScript != null) bulletScript.enabled = true; // trả lại nếu cần dùng sau
     }
 
     Transform FindChildDeep(Transform root, string childName)
@@ -1085,68 +1138,62 @@ public class TowerController : MonoBehaviour, IUpgradableTower
     }
 
     // ====================== MELEE ======================
+    // ====================== MELEE ======================
     void DoMelee()
     {
         // Tâm vùng chém
         Vector3 center = meleeCenter ? meleeCenter.position : transform.position;
         if (meleeYOffset != 0f) center += Vector3.up * meleeYOffset;
 
-        float r = CurrentRange;                // hoặc dùng 'range' nếu bạn sync sẵn
+        float r = CurrentRange;
         float r2 = r * r;
         float dmg = CurrentDamage;
 
         EnemyController chosen = null;
 
-        // 1) ƯU TIÊN: target hiện tại (đang lock để xoay/anim)
+        // 1) ƯU TIÊN: target hiện tại (nếu còn sống & thật sự đang trong tầm)
         if (target != null)
         {
             var ec = target.GetComponent<EnemyController>();
-            if (ec != null && !ec.IsDead)
+            if (IsTargetable(ec))
             {
-                // kiểm tra thật sự trong tầm bằng ClosestPoint của collider
                 Collider col = target.GetComponentInChildren<Collider>();
                 Vector3 p = col ? col.ClosestPoint(center) : target.position;
                 if ((p - center).sqrMagnitude <= r2)
-                {
                     chosen = ec;
-                }
             }
         }
 
-        // 2) Nếu chưa có, chọn enemy gần nhất trong bán kính (có cả trigger)
+        // 2) Nếu chưa có, quét collider trong bán kính với LayerMask đúng
         if (chosen == null)
         {
-            // dùng buffer sẵn có của class nếu bạn đã khai báo _overlapBuf; nếu chưa:
-            // static readonly Collider[] _overlapBuf = new Collider[64];
-
             int n = Physics.OverlapSphereNonAlloc(
                 center, r,
                 _overlapBuf,
                 meleeEnemyMask,
-                QueryTriggerInteraction.Collide // LẤY CẢ TRIGGER
+                QueryTriggerInteraction.Collide // lấy cả trigger
             );
 
-            float bestD2 = float.MaxValue;
+            float bestD2 = float.PositiveInfinity;
 
             for (int i = 0; i < n; i++)
             {
                 var c = _overlapBuf[i];
                 if (!c) continue;
 
+                // Ưu tiên attachedRigidbody để gom đúng EnemyController khi có nhiều child-collider
                 EnemyController ec = null;
-
-                // Ưu tiên lấy từ attachedRigidbody (ổn với enemy có nhiều child colliders)
                 if (c.attachedRigidbody)
                     ec = c.attachedRigidbody.GetComponent<EnemyController>();
-
                 if (!ec)
                     ec = c.GetComponentInParent<EnemyController>() ?? c.GetComponent<EnemyController>();
 
-                if (ec == null || ec.IsDead) continue;
+                if (!IsTargetable(chosen)) continue;
 
                 Vector3 p = c.ClosestPoint(center);
                 float d2 = (p - center).sqrMagnitude;
 
+                // Chỉ nhận mục tiêu TRONG TẦM, chọn gần nhất
                 if (d2 <= r2 && d2 < bestD2)
                 {
                     bestD2 = d2;
@@ -1155,44 +1202,29 @@ public class TowerController : MonoBehaviour, IUpgradableTower
             }
         }
 
-        // 3) (Tùy chọn) fallback theo tag nếu layer chưa set đúng
-        if (chosen == null)
+        // ❌ 3) BỎ HOÀN TOÀN fallback theo tag (tránh chọn nhầm ngoài tầm)
+
+        // 4) Không có mục tiêu hợp lệ -> miss
+        if (chosen == null) return;
+
+        // Double-check tại thời điểm impact (đề phòng địch vừa lao ra ngoài tầm)
         {
-            var tagged = GameObject.FindGameObjectsWithTag("Enemy");
-            float bestD2 = float.MaxValue;
-            foreach (var go in tagged)
-            {
-                var ec = go.GetComponent<EnemyController>();
-                if (!ec || ec.IsDead) continue;
-
-                Collider col = go.GetComponentInChildren<Collider>();
-                Vector3 p = col ? col.ClosestPoint(center) : go.transform.position;
-                float d2 = (p - center).sqrMagnitude;
-
-                if (d2 <= r2 && d2 < bestD2)
-                {
-                    bestD2 = d2;
-                    chosen = ec;
-                }
-            }
+            Collider col = chosen.GetComponentInChildren<Collider>();
+            Vector3 p = col ? col.ClosestPoint(center) : chosen.transform.position;
+            if ((p - center).sqrMagnitude > r2) return;
         }
 
-        // 4) Gây damage CHỈ 1 MỤC TIÊU
-        if (chosen != null)
+        // 5) Gây damage CHỈ 1 MỤC TIÊU (single-target)
+        chosen.TakeDamage(dmg);
+
+        // SFX cho melee
+        if (meleeHitSFX)
         {
-            chosen.TakeDamage(dmg);
-
-            // SFX chỉ cho melee
-            if (meleeHitSFX)
-            {
-                // phát tại chỗ chém (center) hoặc tại mục tiêu
-                Vector3 sfxPos = (meleeCenter ? meleeCenter.position : transform.position);
-                PlayOneShot3D(meleeHitSFX, sfxPos, meleeSFXVolume);
-            }
+            Vector3 sfxPos = (meleeCenter ? meleeCenter.position : transform.position);
+            PlaySFX(meleeSFXSource, meleeHitSFX, sfxPos, meleeSFXVolume);
         }
-
-        // else Debug.Log("Melee: no target in range.");
     }
+
 
     // ====================== UI SAO ======================
     void SetBulletDamage(float dmg)
@@ -1289,12 +1321,16 @@ public class TowerController : MonoBehaviour, IUpgradableTower
 
         Level++;
 
+        // >>> THÊM 1 DÒNG NÀY:
+        if (upgradeSFX) PlaySFX(upgradeSFXSource, upgradeSFX, transform.position, upgradeSFXVolume);
+
         ShowStar();
-        ApplyLevelSkin();                 // skin theo level
-        StartCoroutine(PlayUpgradeAura()); // <<<<<<<<<< thêm dòng này
+        ApplyLevelSkin();
+        StartCoroutine(PlayUpgradeAura());
         ForceRetargetNow();
         return true;
     }
+
 
     IEnumerator PlayUpgradeAura()
     {
@@ -1477,5 +1513,90 @@ public class TowerController : MonoBehaviour, IUpgradableTower
         var rends = root.GetComponentsInChildren<Renderer>(true);
         for (int i = 0; i < rends.Length; i++) rends[i].enabled = true;
     }
+    void EnsureAudioSources()
+    {
+        if (!meleeSFXSource)
+        {
+            var go = new GameObject("MeleeSFXSource");
+            go.transform.SetParent(transform, false);
+            meleeSFXSource = go.AddComponent<AudioSource>();
+            meleeSFXSource.playOnAwake = false;
+            meleeSFXSource.spatialBlend = 1f; // 3D
+            meleeSFXSource.rolloffMode = AudioRolloffMode.Linear;
+            meleeSFXSource.maxDistance = 25f;
+        }
+        if (!laserSFXSource)
+        {
+            var go = new GameObject("LaserSFXSource");
+            go.transform.SetParent(transform, false);
+            laserSFXSource = go.AddComponent<AudioSource>();
+            laserSFXSource.playOnAwake = false;
+            laserSFXSource.spatialBlend = 1f; // 3D
+            laserSFXSource.rolloffMode = AudioRolloffMode.Linear;
+            laserSFXSource.maxDistance = 25f;
+        }
+        if (!upgradeSFXSource)
+        {
+            var go = new GameObject("UpgradeSFXSource");
+            go.transform.SetParent(transform, false);
+            upgradeSFXSource = go.AddComponent<AudioSource>();
+            upgradeSFXSource.playOnAwake = false;
+            upgradeSFXSource.spatialBlend = 1f;                // 3D
+            upgradeSFXSource.rolloffMode = AudioRolloffMode.Linear;
+            upgradeSFXSource.maxDistance = 25f;
+        }
+    }
+
+    // Helper phát SFX qua AudioSource (route được qua Mixer Group)
+    static void PlaySFX(AudioSource src, AudioClip clip, Vector3 worldPos, float volume = 1f)
+    {
+        if (!src || !clip) return;
+        src.transform.position = worldPos;
+        src.PlayOneShot(clip, volume);
+    }
+    bool IsUndergroundEnemy(EnemyController ec)
+    {
+        if (!skipUndergroundEnemies || ec == null) return false;
+
+        // Cách 1: kiểm layer "Underground" (nhanh & rành mạch)
+        if (!string.IsNullOrEmpty(undergroundLayerName))
+        {
+            int ug = LayerMask.NameToLayer(undergroundLayerName);
+            if (ug >= 0)
+            {
+                if (ec.gameObject.layer == ug) return true;
+
+                // nếu prefab thay layer ở 1 child, quét con
+                foreach (var t in ec.GetComponentsInChildren<Transform>(true))
+                    if (t && t.gameObject.layer == ug) return true;
+            }
+        }
+
+        // Cách 2 (tuỳ chọn): đọc trạng thái từ EnemyBurrow nếu có
+        var burrow = ec.GetComponent("EnemyBurrow");
+        // tránh hard reference
+        if (burrow != null)
+        {
+            var bt = burrow.GetType();
+
+            // property public bool IsUnderground { get; }
+            var p = bt.GetProperty("IsUnderground", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (p != null && p.PropertyType == typeof(bool))
+            {
+                try { if ((bool)p.GetValue(burrow) == true) return true; } catch { }
+            }
+
+            // field private bool _isUnderground;
+            var f = bt.GetField("_isUnderground", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (f != null && f.FieldType == typeof(bool))
+            {
+                try { if ((bool)f.GetValue(burrow) == true) return true; } catch { }
+            }
+        }
+
+        return false;
+    }
+
+    bool IsTargetable(EnemyController ec) => ec != null && !ec.IsDead && !IsUndergroundEnemy(ec);
 
 }

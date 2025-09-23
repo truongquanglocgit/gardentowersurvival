@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   towerId: t9
   displayName: Dragon Fruit
-  icon: {fileID: 21300000, guid: 2b72b2a5c1edf7f47b4faa84951b7e1b, type: 3}
+  icon: {fileID: 21300000, guid: bfa5bef6e9e240a4a977d2cea226ac4d, type: 3}
   rarity: 2
   cost: 600
   range: 5

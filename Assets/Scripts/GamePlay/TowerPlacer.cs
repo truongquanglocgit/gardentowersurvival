@@ -6,7 +6,11 @@ using UnityEngine.UI;
 public class TowerPlacer : MonoBehaviour
 {
     public static TowerPlacer I;
-
+    [Header("SFX")]
+    [SerializeField] private AudioClip placementSFX;
+    [SerializeField, Range(0f, 1f)] private float placementSFXVolume = 0.9f;
+    [SerializeField] public AudioSource placementSFXSource;   // kéo vào Mixer SFX nếu có
+    [SerializeField] private bool placementSFX3D = true;
     [Header("Config")]
     public LayerMask groundMask;
     public LayerMask towerMask;          // ⬅️ Layer của các tower đã đặt
@@ -37,6 +41,14 @@ public class TowerPlacer : MonoBehaviour
     Color badTint = new Color(1f, 0.35f, 0.35f, 0.75f);
 
     Transform player;
+    [Header("Range Ring Visual")]
+    public Color ringColor = new Color(1f, 0.85f, 0f, 0.65f); // vàng nổi trên cỏ
+    public bool enablePulse = true;
+    public float pulseSpeed = 4f;
+    [Range(0f, 1f)] public float pulseAlphaMin = 0.35f;
+    [Range(0f, 1f)] public float pulseAlphaMax = 0.75f;
+
+    float _ringCachedRadius = -1f;
 
     void Awake()
     {
@@ -52,6 +64,8 @@ public class TowerPlacer : MonoBehaviour
             placeButton.onClick.AddListener(PlaceFromPreview);
         }
         if (notEnoughSeedText) notEnoughSeedText.gameObject.SetActive(false);
+        // 🔊 chuẩn bị AudioSource cho placement
+        EnsurePlacementSFXSource();
     }
 
     void Update()
@@ -59,10 +73,52 @@ public class TowerPlacer : MonoBehaviour
         if (!isPlacing || previewTower == null) return;
 
         FollowPlayerAnchor();
+        // Cập nhật ring theo range hiện tại (nếu khác cache)
+        if (rangeRing && previewTower)
+        {
+            float r = GetPreviewRange(previewTower);
+            if (!Mathf.Approximately(r, _ringCachedRadius))
+                BuildPreviewRing(r);
+
+            // Pulse alpha cho dễ thấy (không cần LateUpdate)
+            if (enablePulse)
+            {
+                float t = 0.5f + 0.5f * Mathf.Sin(Time.time * pulseSpeed);
+                float a = Mathf.Lerp(pulseAlphaMin, pulseAlphaMax, t);
+
+                var grad = rangeRing.colorGradient;
+                var cks = grad.colorKeys;
+                var aks = grad.alphaKeys;
+                if (aks == null || aks.Length < 2)
+                    aks = new[] { new GradientAlphaKey(a, 0f), new GradientAlphaKey(a, 1f) };
+                else { aks[0].alpha = a; aks[1].alpha = a; }
+                grad.SetKeys(cks, aks);
+                rangeRing.colorGradient = grad;
+            }
+        }
 
         // cập nhật nút Place + màu ghost theo trạng thái bị chặn
         UpdatePlaceButtonState();
         SetGhostBlockedTint(IsBlockedAtPreview());
+    }
+    void EnsurePlacementSFXSource()
+    {
+        if (placementSFXSource) return;
+        var go = new GameObject("PlacementSFXSource");
+        go.transform.SetParent(transform, false);
+        placementSFXSource = go.AddComponent<AudioSource>();
+        placementSFXSource.playOnAwake = false;
+        placementSFXSource.spatialBlend = placementSFX3D ? 1f : 0f; // 3D hoặc 2D
+        placementSFXSource.rolloffMode = AudioRolloffMode.Linear;
+        placementSFXSource.maxDistance = 25f;
+    }
+
+    static void PlaySFX(AudioSource src, AudioClip clip, Vector3 worldPos, float volume, bool is3D)
+    {
+        if (!src || !clip) return;
+        src.spatialBlend = is3D ? 1f : 0f;
+        src.transform.position = worldPos;
+        src.PlayOneShot(clip, Mathf.Clamp01(volume));
     }
 
     public void SetCurrentTower(TowerData data)
@@ -127,8 +183,15 @@ public class TowerPlacer : MonoBehaviour
         pos.y += 0.2f;
         Instantiate(currentTower.prefab, pos, Quaternion.identity);
         gc.UpdateTowerCount(1);
+        // 🔊 Placement SFX
+        if (placementSFX)
+        {
+            EnsurePlacementSFXSource();
+            PlaySFX(placementSFXSource, placementSFX, pos, placementSFXVolume, placementSFX3D);
+        }
 
         CancelPlacement();
+        
     }
 
     public void CancelPlacement()
@@ -144,24 +207,41 @@ public class TowerPlacer : MonoBehaviour
     {
         FollowPlayerAnchor(obj.transform);
 
+        // Đổi toàn bộ material sang ghost
         foreach (var r in obj.GetComponentsInChildren<Renderer>())
         {
             r.material = ghostMaterial;
-            if (r.material.HasProperty("_Color")) r.material.color = okTint;
+            if (r.material.HasProperty("_Color"))
+                r.material.color = okTint;
         }
 
         obj.layer = LayerMask.NameToLayer("Ignore Raycast");
 
-        var ranged = obj.GetComponent<TowerController>();
-        if (ranged) ranged.enabled = false;
-        var melee = obj.GetComponent<MeleeTowerController>();
-        if (melee) melee.enabled = false;
+        // 🔴 Disable scripts trong mọi child
+        foreach (var towerCtrl in obj.GetComponentsInChildren<TowerController>(true))
+            towerCtrl.enabled = false;
+        foreach (var meleeCtrl in obj.GetComponentsInChildren<MeleeTowerController>(true))
+            meleeCtrl.enabled = false;
 
+        // Disable collider
         foreach (var col in obj.GetComponentsInChildren<Collider>())
             col.enabled = false;
-        obj.GetComponentInChildren<TowerController>().enabled = false;
+
         obj.tag = "Untagged";
+
+        // 🔴 NEW: disable mọi child có tên bắt đầu bằng "CFX"
+        foreach (Transform child in obj.GetComponentsInChildren<Transform>(true))
+        {
+            if (child.name.StartsWith("CFX"))
+            {
+                child.gameObject.SetActive(false);
+                if (Application.isEditor)
+                    Debug.Log($"[TowerPlacer] Disabled VFX child: {child.name}");
+            }
+        }
     }
+
+
 
     void FollowPlayerAnchor(Transform t = null)
     {
@@ -196,23 +276,70 @@ public class TowerPlacer : MonoBehaviour
         go.transform.SetParent(previewTower.transform, false);
         go.transform.localPosition = new Vector3(0f, ringYOffset, 0f);
 
+        // ✅ Bù scale để bán kính luôn là mét "world" (dù prefab scale lạ)
+        Vector3 ls = previewTower.transform.lossyScale;
+        go.transform.localScale = new Vector3(
+            ls.x != 0 ? 1f / ls.x : 1f,
+            ls.y != 0 ? 1f / ls.y : 1f,
+            ls.z != 0 ? 1f / ls.z : 1f
+        );
+
         rangeRing = go.AddComponent<LineRenderer>();
         rangeRing.loop = true;
         rangeRing.useWorldSpace = false;
-        rangeRing.alignment = LineAlignment.View;
         rangeRing.startWidth = ringWidth;
         rangeRing.endWidth = ringWidth;
         rangeRing.numCapVertices = 4;
         rangeRing.numCornerVertices = 4;
-        rangeRing.material = rangeRingMaterial != null ? rangeRingMaterial : new Material(Shader.Find("Sprites/Default"));
+
+        // ✅ Material Additive nổi bật, có fallback
+        Shader sh = Shader.Find("Particles/Additive");
+        if (!sh) sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+        if (!sh) sh = Shader.Find("Sprites/Default");
+        rangeRing.material = rangeRingMaterial != null ? rangeRingMaterial : new Material(sh);
+
+        // ✅ Gradient giống TowerClickable: trắng -> vàng, alpha theo ringColor.a
+        var grad = new Gradient();
+        grad.SetKeys(
+            new[] {
+            new GradientColorKey(Color.white, 0f),
+            new GradientColorKey(new Color(1f, 0.85f, 0f), 1f)
+            },
+            new[] {
+            new GradientAlphaKey(ringColor.a, 0f),
+            new GradientAlphaKey(ringColor.a, 1f)
+            }
+        );
+        rangeRing.colorGradient = grad;
+
+        // Vẽ vòng
+        BuildPreviewRing(radius);
+    }
+
+    void BuildPreviewRing(float radius)
+    {
+        if (!rangeRing) return;
+
+        radius = Mathf.Max(0.01f, radius);
+        if (Mathf.Approximately(_ringCachedRadius, radius) && rangeRing.positionCount == Mathf.Max(16, ringSegments))
+            return;
+
+        _ringCachedRadius = radius;
 
         int n = Mathf.Max(16, ringSegments);
         rangeRing.positionCount = n;
+
+        float step = Mathf.PI * 2f / n;
         for (int i = 0; i < n; i++)
         {
-            float a = i * Mathf.PI * 2f / n;
-            rangeRing.SetPosition(i, new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius));
+            float a = i * step;
+            float x = Mathf.Cos(a) * radius;
+            float z = Mathf.Sin(a) * radius;
+            rangeRing.SetPosition(i, new Vector3(x, 0f, z));
         }
+
+        // Giữ vòng phẳng trên mặt đất
+        rangeRing.transform.localRotation = Quaternion.identity;
     }
 
     void UpdatePlaceButtonState()

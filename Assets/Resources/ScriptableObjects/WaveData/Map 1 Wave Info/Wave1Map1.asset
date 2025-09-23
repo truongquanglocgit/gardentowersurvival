@@ -14,11 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaveDef
   waveName: Wave 1
   items:
-  - startTime: 5
-    spawnerId: s2
+  - startTime: 0
+    spawnerId: s1
     enemyId: e1
-    count: 1
+    count: 5
     interval: 2
-    powerMultiplier: 1000
+    powerMultiplier: 0.8
   aliveCap: 60
   interWaveDelay: 5
+  isBossWave: 0

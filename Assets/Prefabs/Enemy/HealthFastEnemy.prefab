@@ -1,5 +1,133 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &294192537219942850
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3581053704415879366}
+  - component: {fileID: 6341659419915716031}
+  m_Layer: 6
+  m_Name: EnemyAudioSource
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3581053704415879366
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294192537219942850}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.099999994, y: -0.11666667, z: 0}
+  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4431640936352066265}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!82 &6341659419915716031
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294192537219942850}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: -6553308335801829235, guid: 538df724359300742a00a255b6826682, type: 2}
+  m_audioClip: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &3965818599976413719
 GameObject:
   m_ObjectHideFlags: 0
@@ -92,6 +220,7 @@ GameObject:
   - component: {fileID: -6713679377009291726}
   - component: {fileID: -742301543622317300}
   - component: {fileID: 9048510657180122096}
+  - component: {fileID: 9092979595260654233}
   m_Layer: 6
   m_Name: HealthFastEnemy
   m_TagString: Enemy
@@ -112,6 +241,7 @@ Transform:
   m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 3581053704415879366}
   - {fileID: 7619427819422688237}
   - {fileID: 7933892389642568338}
   - {fileID: 102257007872606016}
@@ -193,24 +323,31 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   deathVFXPrefab: {fileID: 19800006, guid: 2a474af3f4c27be4e9bdce39cfe4315d, type: 3}
+  forceDetachDeathSFX: 0
   deathVFXAnchor: {fileID: 4431640936352066265}
   deathVFXPositionOffset: {x: 0, y: 0, z: 0}
   deathVFXEulerOffset: {x: 0, y: 0, z: 0}
   deathVFXScale: {x: 2, y: 2, z: 2}
   deathVFXParentToAnchor: 0
   deathVFXAutoDestroy: 1
-  attackImpactSFX: {fileID: 8300000, guid: b643d06695630c84788b82669a46b8a7, type: 3}
-  attackSFXVolume: 0.9
+  attackImpactSFX: {fileID: 8300000, guid: c149a5b5299974c4183ac0b2ea58a9a0, type: 3}
+  attackSFXVolume: 1
   sfxRandomizePitch: 1
   sfxPitchRange: {x: 0.95, y: 1.05}
-  attackAudioSource: {fileID: 0}
+  deathSFX: {fileID: 8300000, guid: 32921a67c31dd654ea1438150c00888e, type: 3}
+  deathSFXVolume: 1
+  deathSFXRandomizePitch: 1
+  deathSFXPitchRange: {x: 0.95, y: 1.05}
+  deathAudioSource: {fileID: 6341659419915716031}
+  detachDeathSFX: 1
+  attackAudioSource: {fileID: 6341659419915716031}
   attackFXAnchor: {fileID: 0}
   attackImpactVFXPrefab: {fileID: 0}
   vfxParentToAnchor: 0
   vfxAutoDestroy: 1
   hp: 100
   damage: 5
-  seedReward: 200
+  seedReward: 150
   attackRange: 2
   attackSpeed: 1
   attackExitBuffer: 0.5
@@ -330,6 +467,20 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &9092979595260654233
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4063548656715280615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e3cefcac861d2f4684307b4c1063899, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sfxGroup: {fileID: -6553308335801829235, guid: 538df724359300742a00a255b6826682, type: 2}
+  includeInactiveChildren: 1
 --- !u!1 &4598313561516469230
 GameObject:
   m_ObjectHideFlags: 0
@@ -630,8 +781,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: New Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 6a6d8e933d8467540b3deaa28097637b, type: 2}
+  m_sharedMaterial: {fileID: 7374927986402738804, guid: 6a6d8e933d8467540b3deaa28097637b, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -655,7 +806,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 13.5
+  m_fontSize: 13.2
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1070,6 +1221,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 4591877239300424696}
     m_Modifications:
     - target: {fileID: -5109713917404673554, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
+      propertyPath: defaultConfig.endScale
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: -5109713917404673554, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
       propertyPath: defaultConfig.fontSize
       value: 50
       objectReference: {fileID: 0}
@@ -1078,8 +1233,20 @@ PrefabInstance:
       value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: -5109713917404673554, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
+      propertyPath: defaultConfig.acceleration.y
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: -5109713917404673554, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
       propertyPath: defaultConfig.riseWorldPerSec
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -5109713917404673554, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
+      propertyPath: defaultConfig.initialSpeedRange.x
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: -5109713917404673554, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
+      propertyPath: defaultConfig.initialSpeedRange.y
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -5109713917404673554, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
       propertyPath: defaultConfig.totalRiseOverrideMeters
@@ -1176,7 +1343,7 @@ PrefabInstance:
     - target: {fileID: 4744473801424622372, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
       propertyPath: m_fontAsset
       value: 
-      objectReference: {fileID: 11400000, guid: e5862da7bfdcf854db7b77000ee0a44f, type: 2}
+      objectReference: {fileID: 11400000, guid: 6a6d8e933d8467540b3deaa28097637b, type: 2}
     - target: {fileID: 4744473801424622372, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
       propertyPath: m_fontStyle
       value: 1
@@ -1188,7 +1355,7 @@ PrefabInstance:
     - target: {fileID: 4744473801424622372, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
       propertyPath: m_sharedMaterial
       value: 
-      objectReference: {fileID: 2180264, guid: e5862da7bfdcf854db7b77000ee0a44f, type: 2}
+      objectReference: {fileID: 7374927986402738804, guid: 6a6d8e933d8467540b3deaa28097637b, type: 2}
     - target: {fileID: 4744473801424622372, guid: 88613e0cde7a8dc41b7cb2f00daeaa62, type: 3}
       propertyPath: m_VerticalAlignment
       value: 512

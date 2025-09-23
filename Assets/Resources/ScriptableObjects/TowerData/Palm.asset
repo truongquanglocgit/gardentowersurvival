@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
   towerId: t5
   displayName: Palm Tree
-  icon: {fileID: 21300000, guid: 39887475c7f351342a5b291ed6a5bcd0, type: 3}
-  rarity: 2
+  icon: {fileID: 21300000, guid: 491b7458f322b2c48864613a1a40de93, type: 3}
+  rarity: 4
   cost: 800
   range: 5
   fireRate: 1

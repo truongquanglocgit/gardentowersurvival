@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6724903bebd2f449b74033092299b97, type: 3}
+  m_Name: TowerRarityBack
+  m_EditorClassIdentifier: 
+  entries:
+  - rarity: 0
+    backgroundPrefab: {fileID: 4789237983108095370, guid: 81231693bbb605e4fbe2ede6ed3c88d4, type: 3}
+    accentColor: {r: 1, g: 1, b: 1, a: 0}
+    badgeSprite: {fileID: 0}
+    badgeTint: {r: 0, g: 0, b: 0, a: 0}
+    badgeTextOverride: 
+    starCount: 0
+    starSprite: {fileID: 0}
+    starColor: {r: 0, g: 0, b: 0, a: 0}
+    overlayVfxPrefab: {fileID: 0}
+  - rarity: 1
+    backgroundPrefab: {fileID: 4789237983108095370, guid: 4eaaf862287e782498c9a3412d8f31e3, type: 3}
+    accentColor: {r: 0, g: 1, b: 0.03573966, a: 0}
+    badgeSprite: {fileID: 0}
+    badgeTint: {r: 0, g: 0, b: 0, a: 0}
+    badgeTextOverride: 
+    starCount: 0
+    starSprite: {fileID: 0}
+    starColor: {r: 0, g: 0, b: 0, a: 0}
+    overlayVfxPrefab: {fileID: 0}
+  - rarity: 2
+    backgroundPrefab: {fileID: 4789237983108095370, guid: d48bae3f743f35e488f9884dcc305c96, type: 3}
+    accentColor: {r: 0.16078432, g: 0.67058825, b: 0.9921569, a: 1}
+    badgeSprite: {fileID: 0}
+    badgeTint: {r: 0, g: 0, b: 0, a: 0}
+    badgeTextOverride: 
+    starCount: 0
+    starSprite: {fileID: 0}
+    starColor: {r: 0, g: 0, b: 0, a: 0}
+    overlayVfxPrefab: {fileID: 0}
+  - rarity: 3
+    backgroundPrefab: {fileID: 4789237983108095370, guid: 2608bc618d401494f8c3ab773159ca24, type: 3}
+    accentColor: {r: 0.85098046, g: 0.33333334, b: 0.9960785, a: 1}
+    badgeSprite: {fileID: 0}
+    badgeTint: {r: 0, g: 0, b: 0, a: 0}
+    badgeTextOverride: 
+    starCount: 0
+    starSprite: {fileID: 0}
+    starColor: {r: 0, g: 0, b: 0, a: 0}
+    overlayVfxPrefab: {fileID: 0}
+  - rarity: 4
+    backgroundPrefab: {fileID: 4789237983108095370, guid: 68e9c5bc0fb5d304f9f6573d16b6f292, type: 3}
+    accentColor: {r: 0.9490197, g: 0.6431373, b: 0.058823533, a: 1}
+    badgeSprite: {fileID: 0}
+    badgeTint: {r: 0, g: 0, b: 0, a: 0}
+    badgeTextOverride: 
+    starCount: 0
+    starSprite: {fileID: 0}
+    starColor: {r: 0, g: 0, b: 0, a: 0}
+    overlayVfxPrefab: {fileID: 0}
+  - rarity: 4
+    backgroundPrefab: {fileID: 4789237983108095370, guid: 286c2b8357eab724e90b689da0dfb82e, type: 3}
+    accentColor: {r: 0.72156864, g: 0, b: 0, a: 1}
+    badgeSprite: {fileID: 0}
+    badgeTint: {r: 0, g: 0, b: 0, a: 0}
+    badgeTextOverride: 
+    starCount: 0
+    starSprite: {fileID: 0}
+    starColor: {r: 0, g: 0, b: 0, a: 0}
+    overlayVfxPrefab: {fileID: 0}

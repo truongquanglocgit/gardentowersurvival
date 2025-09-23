@@ -6,21 +6,35 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class EnemyController : MonoBehaviour
 {
+    [Header("Death Physics")]
+    [Tooltip("Raycast từ trên xuống để kẹp enemy lên mặt đất khi chết.")]
+    public float groundStickRayHeight = 3f;
+    public float groundStickYOffset = 0.02f;
+    public LayerMask groundStickMask = ~0;
+
+    [Tooltip("Khi chết có tắt collider để không cản đường không.")]
+    public bool disableCollidersOnDeath = true;
+
+    [Tooltip("Chuyển enemy sang layer khác khi chết để đạn/agent bỏ qua (nếu cần).")]
+    public string deadLayerName = "DeadEnemy"; // tạo layer này nếu muốn, hoặc để trống = không đổi
+
+    [Header("Death VFX (Shared)")]
+    [Tooltip("Điểm tham chiếu để đặt VFX chết. Để trống sẽ dùng transform của enemy.")]
+    public Transform deathVFXAnchor;
+    public Vector3 deathVFXPositionOffset = Vector3.zero;
+    public Vector3 deathVFXEulerOffset = Vector3.zero;
+    public Vector3 deathVFXScale = Vector3.one;
+    [Header("Death VFX (Embedded / Pool)")]
+    [Tooltip("Nếu gán: ưu tiên dùng VFX có sẵn trong prefab enemy (để sẵn ở child và DISABLE).")]
+    [SerializeField] private ParticleSystem embeddedDeathVFX;
+    [Tooltip("Home (parent) để trả VFX về sau khi phát xong. Để trống sẽ dùng deathVFXAnchor hoặc chính enemy.")]
+    [SerializeField] private Transform embeddedVFXHome;
     [Header("Death VFX")]
     [Tooltip("Particle VFX khi enemy chết.")]
     public ParticleSystem deathVFXPrefab;
-
-    [Tooltip("Anchor để căn vị trí/rotation cho death VFX. Để trống sẽ dùng transform của enemy.")]
-    public Transform deathVFXAnchor;
-
-    [Tooltip("Offset local theo anchor (m).")]
-    public Vector3 deathVFXPositionOffset = Vector3.zero;
-
-    [Tooltip("Offset local rotation theo anchor (deg Euler).")]
-    public Vector3 deathVFXEulerOffset = Vector3.zero;
-
-    [Tooltip("Scale áp cho VFX sau khi spawn.")]
-    public Vector3 deathVFXScale = Vector3.one;
+    [Tooltip("Bắt buộc tách nguồn Death SFX ra khỏi enemy để không bị cắt khi disable.")]
+    public bool forceDetachDeathSFX = true;
+    
 
     [Tooltip("Nếu true: parent VFX vào anchor (sẽ tắt nếu enemy bị disable). Nếu false: world-space, độc lập.")]
     public bool deathVFXParentToAnchor = false;
@@ -35,7 +49,20 @@ public class EnemyController : MonoBehaviour
     [Tooltip("Random pitch cho SFX cho tự nhiên hơn.")]
     public bool sfxRandomizePitch = true;
     public Vector2 sfxPitchRange = new Vector2(0.95f, 1.05f);
+    [Header("Death SFX")]
+    [Tooltip("Âm khi enemy chết. Bỏ trống => không phát.")]
+    public AudioClip deathSFX;
+    [Range(0f, 1f)] public float deathSFXVolume = 0.9f;
 
+    [Tooltip("Ngẫu nhiên pitch khi chết cho tự nhiên hơn.")]
+    public bool deathSFXRandomizePitch = true;
+    public Vector2 deathSFXPitchRange = new Vector2(0.95f, 1.05f);
+
+    [Tooltip("Nguồn phát one-shot. Để trống sẽ auto tạo. (Chỉ dùng khi không detach)")]
+    public AudioSource deathAudioSource;
+
+    [Tooltip("Nếu true: tạo 1 AudioSource rời tại vị trí chết rồi tự hủy (không bị cắt khi enemy tắt).")]
+    public bool detachDeathSFX = true;
     [Tooltip("AudioSource cục bộ để phát one-shot. Nếu trống sẽ tự tạo.")]
     public AudioSource attackAudioSource; // gắn sẵn hoặc để null cho auto-create
     [Tooltip("Vị trí phát âm thanh/VFX khi impact (xương tay, miệng...). Nếu trống dùng transform của enemy).")]
@@ -133,6 +160,8 @@ public class EnemyController : MonoBehaviour
         // ta tự xoay
         _agent.updateRotation = false;
         _agent.autoBraking = true;
+        if (!embeddedVFXHome) embeddedVFXHome = deathVFXAnchor ? deathVFXAnchor : transform;
+        if (embeddedDeathVFX) embeddedDeathVFX.gameObject.SetActive(false);
 
         // ✅ LẤY ANIMATOR Ở CHILD
         if (!anim) anim = GetComponentInChildren<Animator>(true);
@@ -169,9 +198,48 @@ public class EnemyController : MonoBehaviour
             attackAudioSource.reverbZoneMix = 0f;
             attackAudioSource.volume = 1f;                     // tổng volume nguồn
         }
-
+        if (deathSFX)
+        {
+            // Đảm bảo clip đã nạp vào bộ nhớ (Import: Decompress On Load + Preload Audio Data ON)
+            if (!deathSFX.preloadAudioData) deathSFX.LoadAudioData();
+        }
         if (!attackFXAnchor) attackFXAnchor = transform;
     }
+    void EnsureDeathAudioSource()
+    {
+        if (deathAudioSource) return;
+
+        var go = new GameObject("DeathAudioSource");
+        go.transform.SetParent(transform, false);
+        deathAudioSource = go.AddComponent<AudioSource>();
+        deathAudioSource.playOnAwake = false;
+        deathAudioSource.loop = false;
+        deathAudioSource.spatialBlend = 1f;                // 3D
+        deathAudioSource.rolloffMode = AudioRolloffMode.Linear;
+        deathAudioSource.minDistance = 3f;
+        deathAudioSource.maxDistance = 25f;
+        deathAudioSource.dopplerLevel = 0f;
+        deathAudioSource.reverbZoneMix = 0f;
+        deathAudioSource.volume = 1f;
+    }
+    
+    float EstimateLife(ParticleSystem ps)
+    {
+        var main = ps.main;
+        float life = main.duration;
+        switch (main.startLifetime.mode)
+        {
+            case ParticleSystemCurveMode.Constant:
+                life += main.startLifetime.constant; break;
+            case ParticleSystemCurveMode.TwoConstants:
+                life += Mathf.Max(main.startLifetime.constantMin, main.startLifetime.constantMax); break;
+            default:
+                life += 1f; break;
+        }
+        return Mathf.Max(0.05f, life + 0.1f);
+    }
+
+
     void OnDisable()
     {
         // Khi bị Disable mà chưa gọi Die() → vẫn phải trừ AliveCount
@@ -204,50 +272,110 @@ public class EnemyController : MonoBehaviour
 
         //Debug.Log($"{LOGP} ENABLE {name} id={GetInstanceID()}");
     }
+    static float GetTotalLifetime(ParticleSystem ps)
+    {
+        var main = ps.main;
+        float life = main.duration;
+        switch (main.startLifetime.mode)
+        {
+            case ParticleSystemCurveMode.Constant:
+                life += main.startLifetime.constant; break;
+            case ParticleSystemCurveMode.TwoConstants:
+                life += Mathf.Max(main.startLifetime.constantMin, main.startLifetime.constantMax); break;
+            default:
+                life += 1f; break; // an toàn
+        }
+        return Mathf.Max(0.05f, life);
+    }
     void TriggerDeathVFX()
     {
-        if (!deathVFXPrefab) return;
+        // Lấy prefab VFX CHUNG từ WaveManager
+        var shared = WaveManager.GetSharedDeathVFX();
+        if (!shared || PoolManager.I == null) return;
 
+        // Tính world transform
         Transform anchor = deathVFXAnchor ? deathVFXAnchor : transform;
-
-        // Tính pos/rot theo local offset của anchor
         Vector3 worldPos = anchor.TransformPoint(deathVFXPositionOffset);
         Quaternion worldRot = anchor.rotation * Quaternion.Euler(deathVFXEulerOffset);
 
-        Transform parent = deathVFXParentToAnchor ? anchor : null;
+        // ✅ Lấy từ pool (KHÔNG parent ra ngoài, vẫn nằm dưới Pool_VFXName)
+        var vfxGO = PoolManager.I.Get(shared.gameObject, worldPos, worldRot);
+        var ps = vfxGO.GetComponent<ParticleSystem>();
 
-        // Nếu có pool VFX của bạn thì đổi sang lấy từ pool ở đây
-        ParticleSystem vfx = Instantiate(deathVFXPrefab, worldPos, worldRot, parent);
+        // Set scale world (vì parent là folder Pool, ta set trực tiếp localScale = world scale mong muốn)
+        vfxGO.transform.localScale = deathVFXScale;
 
-        // Áp scale (local nếu có parent, còn không thì vẫn ok vì object mới không bị ảnh hưởng)
-        vfx.transform.localScale = deathVFXScale;
+        ps.Clear(true);
+        ps.Play(true);
 
-        vfx.Play(true);
-
-        if (deathVFXAutoDestroy)
-        {
-            var main = vfx.main;
-            float life = main.duration;
-
-            // Ước lượng phần startLifetime
-            switch (main.startLifetime.mode)
-            {
-                case ParticleSystemCurveMode.Constant:
-                    life += main.startLifetime.constant;
-                    break;
-                case ParticleSystemCurveMode.TwoConstants:
-                    life += Mathf.Max(main.startLifetime.constantMin, main.startLifetime.constantMax);
-                    break;
-                default:
-                    // Trường hợp Curve/TwoCurves: dùng một giá trị an toàn
-                    life += 1.0f;
-                    break;
-            }
-
-            Destroy(vfx.gameObject, Mathf.Max(0.05f, life + 0.1f));
-        }
+        // ✅ Sau lifetime → Stop/Clear và set inactive, GIỮ NGUYÊN Ở THƯ MỤC POOL
+        float life = GetTotalLifetime(ps);
+        StartCoroutine(ReturnVFXToPoolAfter(ps, life));
     }
 
+    IEnumerator ReturnVFXToPoolAfter(ParticleSystem ps, float wait)
+    {
+        yield return new WaitForSeconds(wait);
+        if (!ps) yield break;
+
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        PoolManager.I.Return(ps.gameObject);   // ✅ không Destroy
+    }
+    void TriggerDeathSFX()
+    {
+        if (!deathSFX) return;
+
+        // Vị trí phát: ưu tiên anchor của death VFX (trùng vị trí hiệu ứng chết)
+        Transform anchor = deathVFXAnchor ? deathVFXAnchor : transform;
+        Vector3 worldPos = anchor.TransformPoint(deathVFXPositionOffset);
+
+        // Pitch ngẫu nhiên nhẹ cho tự nhiên
+        float pitch = deathSFXRandomizePitch ? Random.Range(deathSFXPitchRange.x, deathSFXPitchRange.y) : 1f;
+
+        if (forceDetachDeathSFX)
+        {
+            // ► Tạo nguồn âm thanh tách rời để không bị cắt khi enemy disable
+            AudioSource src = CreateDetachedOneShotSource(worldPos);
+            src.pitch = pitch;
+            src.PlayOneShot(deathSFX, Mathf.Clamp01(deathSFXVolume));
+
+            // Tính thời lượng sống ước lượng theo clip/pitch (clip.length có thể 0 nếu stream)
+            float life = deathSFX.length > 0f ? deathSFX.length / Mathf.Max(0.01f, Mathf.Abs(pitch)) : 1.2f;
+            StartCoroutine(ReleaseDetachedAfter(src, life + 0.05f));
+        }
+        else
+        {
+            // ► Phát bằng AudioSource gắn trên enemy (có thể bị cắt nếu disable sớm)
+            EnsureDeathAudioSource();
+            deathAudioSource.transform.position = worldPos;
+            deathAudioSource.pitch = pitch;
+            deathAudioSource.PlayOneShot(deathSFX, Mathf.Clamp01(deathSFXVolume));
+        }
+    }
+    // === Helpers ===
+    AudioSource CreateDetachedOneShotSource(Vector3 pos)
+    {
+        var go = new GameObject("DeathSFX_OneShot");
+        go.transform.position = pos;
+
+        var src = go.AddComponent<AudioSource>();
+        src.playOnAwake = false;
+        src.loop = false;
+        src.spatialBlend = 1f;                     // 3D
+        src.rolloffMode = AudioRolloffMode.Linear;
+        src.minDistance = 3f;
+        src.maxDistance = 25f;
+        src.dopplerLevel = 0f;
+        src.reverbZoneMix = 0f;
+        src.volume = 1f;                           // volume tổng, mức clip nằm ở PlayOneShot()
+        return src;
+    }
+
+    IEnumerator ReleaseDetachedAfter(AudioSource src, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (src) Destroy(src.gameObject);
+    }
     void Update()
     {
         if (IsDead || !_player) return;
@@ -484,7 +612,7 @@ public class EnemyController : MonoBehaviour
         IsDead = true;
         _state = State.Dead;
 
-        // ▶▶ Spawn VFX chết NGAY TẠI ĐÂY (trước khi disable agent/SetActive)
+        TriggerDeathSFX();
         TriggerDeathVFX();
 
         if (_agent) { _agent.isStopped = true; _agent.enabled = false; }
@@ -506,7 +634,69 @@ public class EnemyController : MonoBehaviour
             WaveRuntime.RegisterDeath(gameObject);
         }
 
+        // 🆕 Xoay ngược enemy khi chết (nằm ngửa ra sau)
+        transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 180f);
+
+        // 🆕 Disable EnemyController để dừng toàn bộ Update/logic
+        this.enabled = false;
+
         StartCoroutine(HideAfterDelay(deathHideDelay));
+    
+
+
+    // 🆕 Giữ xác đứng yên trên mặt đất
+    FreezePhysicsAndStickToGround();
+        SetDeadLayerIfAny();
+
+        StartCoroutine(HideAfterDelay(deathHideDelay));
+    }
+
+
+    void FreezePhysicsAndStickToGround()
+    {
+        // 🧊 Đóng băng vật lý để không rơi xuyên
+        var rb = GetComponent<Rigidbody>();
+        if (rb)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.useGravity = false;
+            rb.isKinematic = true;         // kinematic = không bị physics kéo xuống
+            rb.detectCollisions = false;   // tuỳ chọn, vì ta có thể tắt collider bên dưới
+        }
+
+        // 🔇 Tắt collider để không cản đường (tuỳ chọn)
+        if (disableCollidersOnDeath)
+        {
+            var cols = GetComponentsInChildren<Collider>(true);
+            foreach (var c in cols) c.enabled = false;
+        }
+
+        // 📌 Kẹp lên mặt đất bằng raycast từ trên xuống
+        Vector3 rayOrigin = transform.position + Vector3.up * groundStickRayHeight;
+        if (Physics.Raycast(rayOrigin, Vector3.down, out var hit, groundStickRayHeight * 2f, groundStickMask, QueryTriggerInteraction.Ignore))
+        {
+            Vector3 p = transform.position;
+            p.y = hit.point.y + groundStickYOffset;
+            transform.position = p;
+        }
+    }
+
+    void SetDeadLayerIfAny()
+    {
+        if (string.IsNullOrEmpty(deadLayerName)) return;
+        int deadLayer = LayerMask.NameToLayer(deadLayerName);
+        if (deadLayer < 0) return; // layer chưa tồn tại → bỏ qua
+
+        // đổi layer cho root + toàn bộ children
+        SetLayerRecursively(transform, deadLayer);
+    }
+
+    static void SetLayerRecursively(Transform t, int layer)
+    {
+        t.gameObject.layer = layer;
+        for (int i = 0; i < t.childCount; i++)
+            SetLayerRecursively(t.GetChild(i), layer);
     }
 
 

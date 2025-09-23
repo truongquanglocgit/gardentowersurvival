@@ -132,9 +132,11 @@ public class TowerUpgradeUI : MonoBehaviour
     }
     public void Hide()
     {
-        
-        OnDisable();
-        this.panel.SetActive(false);
+        // đảm bảo ring cũng tắt & bỏ chọn tower đang chọn
+        TowerClickable.HideAnyRingAndDeselect();
+
+        OnDisable(); // (đang có sẵn trong code của bạn, giữ nguyên)
+        if (panel) panel.SetActive(false);
     }
 
     void Refresh()
@@ -175,7 +177,7 @@ public class TowerUpgradeUI : MonoBehaviour
         bool canUpgrade = current.CanUpgrade && GameController.Instance.Seed >= upCost;
         int sellVal = current.GetSellPrice();
 
-        if (txtUpgradePrice) txtUpgradePrice.text = current.CanUpgrade ? $"-{upCost}" : "Max Level";
+        if (txtUpgradePrice) txtUpgradePrice.text = current.CanUpgrade ? $"\n-{upCost}" : "Max Level";
         if (txtSellPrice) txtSellPrice.text = $"+{sellVal}";
 
         // Dim toàn bộ cụm upgrade khi không đủ điều kiện
@@ -234,13 +236,24 @@ public class TowerUpgradeUI : MonoBehaviour
             container.GetChild(i).gameObject.SetActive(false);
     }
 
+    
+
     public void OnClickUpgrade()
     {
         if (current == null || !current.CanUpgrade) return;
+
         if (current.Upgrade())
         {
-            Refresh();
-            // KHÔNG pop pause/slow ở đây; UI vẫn đang mở để xem chỉ số mới
+            // Cập nhật ring theo range mới -> rồi tắt ring luôn
+            var clickable = current.GetComponentInParent<TowerClickable>();
+            if (clickable != null)
+            {
+                clickable.UpdateRingToCurrentRangeThenHide();
+            }
+
+            // Đúng yêu cầu: sau Upgrade đóng luôn UI
+            Hide();
+            // Nếu muốn giữ UI mở để xem chỉ số mới, thì đổi Hide() thành Refresh();
         }
     }
 
@@ -251,4 +264,5 @@ public class TowerUpgradeUI : MonoBehaviour
         current.SellAndDestroy();
         Hide(); // Hide sẽ pop slow nếu đang giữ
     }
+
 }

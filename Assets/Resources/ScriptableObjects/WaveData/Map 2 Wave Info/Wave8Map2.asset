@@ -17,13 +17,13 @@ MonoBehaviour:
   - startTime: 5
     spawnerId: s1
     enemyId: miniboss
-    count: 2
+    count: 4
     interval: 4
     powerMultiplier: 2
   - startTime: 5
     spawnerId: s2
     enemyId: he2
-    count: 2
+    count: 10
     interval: 1
     powerMultiplier: 3
   - startTime: 0
@@ -34,3 +34,4 @@ MonoBehaviour:
     powerMultiplier: 3
   aliveCap: 60
   interWaveDelay: 5
+  isBossWave: 0

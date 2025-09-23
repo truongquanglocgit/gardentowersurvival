@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
   towerId: t1
   displayName: Strawberry
-  icon: {fileID: 21300000, guid: 93d5507d0f51af448b56ec6d1c959fd0, type: 3}
+  icon: {fileID: 21300000, guid: f2801977188205248957a325fc2ebd25, type: 3}
   rarity: 0
   cost: 150
   range: 5

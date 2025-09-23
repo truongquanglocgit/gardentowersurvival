@@ -1,97 +1,230 @@
 ﻿using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
-public class PoolManager : MonoBehaviour
+/// <summary>
+/// PoolManager tối giản, an toàn:
+/// - Mỗi prefab có 1 folder "Pool_<PrefabName>" dưới PoolManager
+/// - Instance luôn là con của folder đó, kể cả khi Active
+/// - Không có overload Get(..., parent)
+/// - Return: Stop/Clear PS, SetActive(false), enqueue lại (ở yên trong folder)
+/// </summary>
+/// 
+public sealed class PoolManager : MonoBehaviour
 {
     public static PoolManager I;
 
-    // Khóa theo prefab gốc
-    private readonly Dictionary<GameObject, Queue<GameObject>> pools = new();
+    // Queue theo prefab gốc
+    private readonly Dictionary<GameObject, Queue<GameObject>> _pools = new();
 
-    void Awake()
+    // === Lifecycle ===
+    private void Awake()
     {
-        if (I != null && I != this) { Destroy(gameObject); return; } // chống trùng
+        if (I != null && I != this) { Destroy(gameObject); return; }
         I = this;
-        // Nếu muốn PoolManager sống qua scene, bật dòng dưới rồi nhớ gọi ClearAll khi rời trận:
+
+        // Nếu muốn sống qua scene:
         // DontDestroyOnLoad(gameObject);
     }
 
-    void OnDestroy()
+    private void OnDestroy()
     {
         if (I == this) I = null;
     }
 
-    public GameObject Get(GameObject prefab, Vector3 pos, Quaternion rot)
+    // === Public API ===
+
+    /// <summary>
+    /// Khởi tạo sẵn N instance cho 1 prefab (nằm dưới Pool_<PrefabName>, inactive).
+    /// Nếu đã có một phần, chỉ bù cho đủ.
+    /// </summary>
+    public void WarmUp(GameObject prefab, int count)
     {
-        if (!pools.TryGetValue(prefab, out var q))
+        if (!_pools.TryGetValue(prefab, out var q))
+            _pools[prefab] = q = new Queue<GameObject>();
+
+        var folder = GetOrCreatePoolParent(prefab.name);
+
+        // Đếm tổng tồn tại (inactive trong queue + active dưới folder)
+        int inactive = q.Count, active = 0;
+        for (int i = 0; i < folder.childCount; i++)
+            if (folder.GetChild(i).gameObject.activeSelf) active++;
+
+        int totalHave = inactive + active;
+        int need = Mathf.Max(0, count - totalHave);
+        for (int i = 0; i < need; i++)
+        {
+            var obj = Instantiate(prefab);
+            var mk = obj.GetComponent<PooledMarker>() ?? obj.AddComponent<PooledMarker>();
+            mk.source = prefab;
+
+            obj.transform.SetParent(folder, false);
+            obj.SetActive(false);
+            q.Enqueue(obj);
+        }
+    }
+
+
+    /// <summary>
+    /// Overload tiện cho ParticleSystem.
+    /// </summary>
+    public void WarmUp(ParticleSystem prefab, int count)
+    {
+        if (prefab) WarmUp(prefab.gameObject, count);
+    }
+
+    /// <summary>
+    /// Lấy 1 instance từ pool, đặt world pos/rot, Active = true.
+    /// Parent luôn giữ là folder Pool_<PrefabName>.
+    /// </summary>
+    public GameObject Get(GameObject prefab, Vector3 worldPos, Quaternion worldRot)
+    {
+        if (!prefab)
+        {
+            Debug.LogError("[Pool] Get() with null prefab");
+            return null;
+        }
+
+        if (!_pools.TryGetValue(prefab, out var q))
         {
             q = new Queue<GameObject>();
-            pools[prefab] = q;
+            _pools[prefab] = q;
         }
 
         GameObject go;
         if (q.Count > 0)
         {
             go = q.Dequeue();
-            go.transform.SetPositionAndRotation(pos, rot);
-            go.SetActive(true);
+            if (!go) // bị Destroy bên ngoài?
+            {
+                // tạo mới thay thế
+                go = Instantiate(prefab);
+                var mkNew = go.GetComponent<PooledMarker>();
+                if (!mkNew) mkNew = go.AddComponent<PooledMarker>();
+                mkNew.source = prefab;
+
+                // parent về Pool
+                go.transform.SetParent(GetOrCreatePoolParent(prefab.name), worldPositionStays: false);
+            }
         }
         else
         {
-            go = Instantiate(prefab, pos, rot);
-            go.AddComponent<PooledMarker>().source = prefab;
+            go = Instantiate(prefab);
+            var mk = go.GetComponent<PooledMarker>();
+            if (!mk) mk = go.AddComponent<PooledMarker>();
+            mk.source = prefab;
 
-            Transform poolParent = GetOrCreatePoolParent(prefab.name);
-            go.transform.SetParent(poolParent, true);
+            // parent về Pool
+            go.transform.SetParent(GetOrCreatePoolParent(prefab.name), worldPositionStays: false);
         }
+        //Debug.Log($"[Pool] GET {prefab.name} -> {go.name} parent={go.transform.parent?.name}");
+
+        // Đặt world transform (parent không đổi)
+        go.transform.SetPositionAndRotation(worldPos, worldRot);
+        go.SetActive(true);
         return go;
     }
 
+    /// <summary>
+    /// Overload tiện cho Component (ví dụ ParticleSystem).
+    /// </summary>
+    public T Get<T>(T prefab, Vector3 worldPos, Quaternion worldRot) where T : Component
+    {
+        if (!prefab) return null;
+        var go = Get(prefab.gameObject, worldPos, worldRot);
+        return go ? go.GetComponent<T>() : null;
+    }
+
+    /// <summary>
+    /// Trả về pool: Stop/Clear (nếu có PS), SetActive(false), reparent về Pool (phòng khi bị đổi),
+    /// Enqueue lại vào đúng queue theo source prefab.
+    /// </summary>
     public void Return(GameObject go)
     {
         if (!go) return;
+
         var mk = go.GetComponent<PooledMarker>();
-        if (mk == null || !pools.ContainsKey(mk.source)) { Destroy(go); return; }
+        // Nếu marker thiếu → tự gắn lại để không bị Destroy
+        if (mk == null) mk = go.AddComponent<PooledMarker>();
+
+        // Nếu thiếu source (do tạo sai đường), lấy theo tên folder cha; nếu vẫn null, cố gắng suy luận từ prefab name
+        if (mk.source == null)
+        {
+            // THAY thế bằng prefab gốc nếu bạn có registry; nếu không có thì ít nhất vẫn cho vào “thùng rác an toàn”
+            // Ở đây: không có registry => cho về parent Pool hiện tại, vẫn tái sử dụng được.
+        }
+        Debug.Log($"[Pool] RETURN {go.name} parent={go.transform.parent?.name}");
+
+        // Stop/Clear nếu là ParticleSystem
+        var ps = go.GetComponent<ParticleSystem>();
+        if (ps) ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+        // Đưa về đúng folder Pool_<sourceName> (kể cả khi ai đó đổi parent)
+        var folder = GetOrCreatePoolParent(mk.source != null ? mk.source.name : go.name);
+        if (go.transform.parent != folder)
+            go.transform.SetParent(folder, true);
 
         go.SetActive(false);
-        pools[mk.source].Enqueue(go);
+
+        // Bảo đảm có queue cho source này
+        if (mk.source != null)
+        {
+            if (!_pools.TryGetValue(mk.source, out var q))
+            {
+                q = new Queue<GameObject>();
+                _pools[mk.source] = q;
+            }
+            q.Enqueue(go);
+        }
+        else
+        {
+            // “Orphan” – vẫn giữ trong folder để tái dùng (không Destroy)
+            // Có thể tạo một hàng đợi dự phòng theo tên:
+            if (!_orphanPools.TryGetValue(folder.name, out var qo))
+            {
+                qo = new Queue<GameObject>();
+                _orphanPools[folder.name] = qo;
+            }
+            qo.Enqueue(go);
+            Debug.LogWarning($"[Pool] {go.name} trả về pool nhưng thiếu source. Giữ lại trong {folder.name} để tái dùng.");
+        }
     }
 
-    public void WarmUp(GameObject prefab, int count)
+    // Thêm ở class:
+    private readonly Dictionary<string, Queue<GameObject>> _orphanPools = new();
+
+
+    /// <summary>
+    /// Trả về pool sau 'seconds'. Hữu ích khi bạn muốn chờ khoảng thời gian cố định.
+    /// (Với VFX nên ưu tiên tính lifetime và gọi Return khi xong)
+    /// </summary>
+    public void ReturnAfter(GameObject go, float seconds)
     {
-        if (!pools.TryGetValue(prefab, out var q))
-        {
-            q = new Queue<GameObject>();
-            pools[prefab] = q;
-        }
-
-        Transform poolParent = GetOrCreatePoolParent(prefab.name);
-        for (int i = 0; i < count; i++)
-        {
-            var obj = Instantiate(prefab);
-            obj.SetActive(false);
-            obj.AddComponent<PooledMarker>().source = prefab;
-            obj.transform.SetParent(poolParent, false);
-            q.Enqueue(obj);
-        }
+        StartCoroutine(_ReturnAfter(go, seconds));
     }
 
-    /// <summary>Hủy sạch mọi thứ trong pool (active + inactive) và xóa thư mục Pool_*.</summary>
+    private IEnumerator _ReturnAfter(GameObject go, float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        if (go) Return(go);
+    }
+
+    /// <summary>Hủy sạch tất cả pool (active + inactive) và xóa các folder Pool_*.</summary>
     public void ClearAll()
     {
-        // 1) Hủy tất cả object đang xếp hàng
-        foreach (var kvp in pools)
+        // Hủy queued inactives
+        foreach (var kv in _pools)
         {
-            var q = kvp.Value;
+            var q = kv.Value;
             while (q.Count > 0)
             {
-                var go = q.Dequeue();
-                if (go) Destroy(go);
+                var obj = q.Dequeue();
+                if (obj) Destroy(obj);
             }
         }
-        pools.Clear();
+        _pools.Clear();
 
-        // 2) Hủy mọi con dưới PoolManager (bao gồm cả object đang active vì chúng vẫn là con của Pool_*)
+        // Hủy mọi folder Pool_* cùng toàn bộ con
         for (int i = transform.childCount - 1; i >= 0; i--)
         {
             var child = transform.GetChild(i);
@@ -99,40 +232,45 @@ public class PoolManager : MonoBehaviour
         }
     }
 
-    /// <summary>Hủy sạch 1 pool theo prefab (khi rời map chỉ dọn một số loại).</summary>
+    /// <summary>Hủy sạch một pool theo prefab (cả active trong folder và inactive trong queue).</summary>
     public void ClearPool(GameObject prefab)
     {
         if (!prefab) return;
 
-        // Hủy queue
-        if (pools.TryGetValue(prefab, out var q))
+        // Queue
+        if (_pools.TryGetValue(prefab, out var q))
         {
             while (q.Count > 0)
             {
-                var go = q.Dequeue();
-                if (go) Destroy(go);
+                var obj = q.Dequeue();
+                if (obj) Destroy(obj);
             }
-            pools.Remove(prefab);
+            _pools.Remove(prefab);
         }
 
-        // Hủy folder Pool_prefabName (gồm cả active/inactive)
-        string folderName = $"Pool_{prefab.name}";
-        var folder = transform.Find(folderName);
+        // Folder
+        var folder = transform.Find($"Pool_{prefab.name}");
         if (folder) Destroy(folder.gameObject);
     }
 
-    private Transform GetOrCreatePoolParent(string name)
+    // === Helpers ===
+
+    private Transform GetOrCreatePoolParent(string prefabName)
     {
-        string folderName = $"Pool_{name}";
+        string folderName = $"Pool_{prefabName}";
         var folder = transform.Find(folderName);
         if (folder == null)
         {
             var go = new GameObject(folderName);
-            go.transform.SetParent(transform);
+            go.transform.SetParent(transform, false);
             folder = go.transform;
         }
         return folder;
     }
 
-    private class PooledMarker : MonoBehaviour { public GameObject source; }
+    /// <summary>Marker để biết instance thuộc pool nào.</summary>
+    private sealed class PooledMarker : MonoBehaviour
+    {
+        public GameObject source;
+    }
 }

@@ -30,3 +30,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ad636a6de527a604b9ccc052abd7ff46, type: 2}
   - {fileID: 11400000, guid: 21bcdf29f3912c14e81bafae08a107be, type: 2}
   - {fileID: 11400000, guid: 5998a6d8707524a47ad3abaa1f764b30, type: 2}
+  previewPrefab: {fileID: 1672718697252462577, guid: 893ab07b7ba555b49bef09ea30796077, type: 3}
+  previewPosition: {x: 0, y: 0, z: 0}
+  previewEuler: {x: 0, y: 30, z: 0}
+  previewScale: 1

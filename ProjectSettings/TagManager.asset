@@ -9,6 +9,8 @@ TagManager:
   - WaterText
   - FxTemporaire
   - Spawner
+  - UICamera
+  - LiftCamera
   layers:
   - Default
   - TransparentFX
@@ -20,6 +22,8 @@ TagManager:
   - Spawner
   - Ground
   - Player
+  - TutorialLift
+  - TutorialUI
   - 
   - 
   - 
@@ -38,9 +42,7 @@ TagManager:
   - 
   - 
   - 
-  - 
-  - 
-  - 
+  - Preview3D
   - 
   m_SortingLayers:
   - name: Default

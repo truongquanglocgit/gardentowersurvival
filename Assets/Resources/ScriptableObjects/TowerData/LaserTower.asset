@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
   towerId: t8
   displayName: Laser
-  icon: {fileID: 21300000, guid: b07f76c8fc0844149afd6276b62f395a, type: 3}
+  icon: {fileID: 21300000, guid: a7c499c2bc6be4e47bec228e129f817c, type: 3}
   rarity: 5
   cost: 1500
   range: 5
