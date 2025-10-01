@@ -21,6 +21,7 @@ public class TowerSelectUI : MonoBehaviour
 
     void GenerateTowerButtons()
     {
+
         if (preconfiguredButtons != null && preconfiguredButtons.Count >= towersInMatch.Count)
         {
             for (int i = 0; i < towersInMatch.Count; i++)

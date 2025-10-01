@@ -12,8 +12,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23ea7baef1366cb4886851269c613015, type: 3}
   m_Name: Step3
   m_EditorClassIdentifier: 
+  waitForExternalSignal: 0
+  externalSignalKey: 
+  consumeSignal: 0
+  useTypewriter: 1
+  typewriterCharsPerSecond: 28
+  typewriterUseUnscaledTime: 1
+  typewriterAllowSkip: 1
+  chatBubbleUseCustomPos: 0
+  chatBubbleCustomPos: {x: 0, y: 0}
+  chatBubblePosAsScreenSpace: 0
+  showUIArrow: 1
+  uiArrowRadialOffset: 350
+  uiArrowBobAmplitude: 6
+  uiArrowBobFrequency: 2
+  uiArrowOrientationOffset: 90
+  timeCountdown: 0
   pointArrowOnWorldTarget: 0
+  arrowPrefab: {fileID: 0}
+  arrowAnchorPath: ArrowAnchor
+  arrowUIOffset: {x: 0, y: 80}
   arrowLocalOffset: {x: 0, y: 2, z: 0}
+  freezeTime: 1
   stepId: s3
   mode: 1
   chatText: 

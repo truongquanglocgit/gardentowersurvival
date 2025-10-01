@@ -10,24 +10,24 @@ EditorBuildSettings:
     guid: 2d96a8aae40ede64694c32f0d6cb93f7
   - enabled: 1
     path: Assets/Scenes/Map1.unity
-    guid: ce0aabf0077f16c419afc47d94cdc863
+    guid: 44f5c2919f1e659438b4007009a26d95
   - enabled: 1
     path: Assets/Scenes/Map2.unity
-    guid: ac22adf9f272ca8478389b4cd1d7b180
+    guid: 9133e2c298ccf94479d0ff5411e8a250
   - enabled: 1
     path: Assets/Scenes/Map3.unity
-    guid: 103f22231ea818b4d88a67fade0dbd10
+    guid: d685dd8af3469b94aac3f9f6597bf962
   - enabled: 1
     path: Assets/Scenes/Loading.unity
     guid: 0ccb03d07aa8d6144963ad0abac7ae89
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Map6.unity
-    guid: 6c7801df23642924b9bb0ae61ce60778
-  - enabled: 1
+    guid: 5d3e21d59efdca74da1147b95e3fdc64
+  - enabled: 0
     path: Assets/Scenes/Map5.unity
-    guid: 629fc378b2112c94284fd90266742740
-  - enabled: 1
+    guid: f55c0aaf9b2fbcc40a725dba1237395b
+  - enabled: 0
     path: Assets/Scenes/Map4.unity
-    guid: f47a58a49f234cb4bb40d249dafd3228
+    guid: 8a5d856a34ebd89499c8e2e2c72e6ff0
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: eff6a737c1ddedf46916f7ac3809b085, type: 2}

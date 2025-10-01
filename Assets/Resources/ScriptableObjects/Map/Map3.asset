@@ -12,10 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6abd16be88f1348449e1de3ac105b9bd, type: 3}
   m_Name: Map3
   m_EditorClassIdentifier: Assembly-CSharp::MapData
-  mapName: Map3
+  mapId: Map13
+  orderIndex: 3
+  mapName: Map 1 - 3
   previewImage: {fileID: 21300000, guid: cf1551993151f534b94678d2ff0e8c6b, type: 3}
   sceneToLoad: Map3
-  waterReward: 1000
+  waterReward: 100
   plantRewardList: []
   waveList:
   - {fileID: 11400000, guid: 3b7c50e817868f843b78f1b5ec483259, type: 2}
@@ -30,7 +32,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ad636a6de527a604b9ccc052abd7ff46, type: 2}
   - {fileID: 11400000, guid: 21bcdf29f3912c14e81bafae08a107be, type: 2}
   - {fileID: 11400000, guid: 5998a6d8707524a47ad3abaa1f764b30, type: 2}
-  previewPrefab: {fileID: 1672718697252462577, guid: 893ab07b7ba555b49bef09ea30796077, type: 3}
+  previewPrefab: {fileID: 944328215597764263, guid: 276d9b9e6c9015241a48d9a90a8cd3df, type: 3}
   previewPosition: {x: 0, y: 0, z: 0}
   previewEuler: {x: 0, y: 30, z: 0}
   previewScale: 1

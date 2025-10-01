@@ -30,7 +30,11 @@ public class GachaResultPanel : MonoBehaviour
     void Start()
     {
         if (closeButton != null)
+        {
             closeButton.onClick.AddListener(() => gameObject.SetActive(false));
+            TutorialManager.EmitSignalGlobal("DoneRoll");
+        }
+            
     }
 
     public void ShowResults(List<TowerData> towers)

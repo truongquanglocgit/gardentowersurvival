@@ -10,7 +10,7 @@ public class TowerSlotButton : MonoBehaviour
     public Image icon;                 // Panel sẽ gán sprite vào child "TowerImage"
     public TMP_Text nameText;
     public TMP_Text costText;
-
+    public TMP_Text freeText;
     [Header("Behavior")]
     [Tooltip("Nếu false, Setup sẽ KHÔNG gán icon (để Panel/Slot gán trực tiếp vào child TowerImage).")]
     public bool bindIconInSetup = true;
@@ -86,6 +86,27 @@ public class TowerSlotButton : MonoBehaviour
 
         // Đảm bảo đã có cache trước khi ai đó gọi ApplyListItemState ngay sau Setup
         TryCacheGraphics();
+        RefreshFreeText();
+
+    }
+    /// <summary>
+    /// Refresh text xN hiển thị số free towers
+    /// </summary>
+    private void RefreshFreeText()
+    {
+        if (freeText == null || data == null) return;
+
+        int n = RewardManager.I != null ? RewardManager.I.GetFreeCount(data) : 0;
+
+        if (n > 0)
+        {
+            freeText.gameObject.SetActive(true);
+            freeText.text = $"x{n}";
+        }
+        else
+        {
+            freeText.gameObject.SetActive(false);
+        }
     }
 
     /// <summary>
@@ -179,5 +200,17 @@ public class TowerSlotButton : MonoBehaviour
                 stack.Push(cur.GetChild(i));
         }
         return null;
+    }
+    void OnEnable()
+    {
+        if (RewardManager.I != null)
+            RewardManager.I.OnFreeCountsChanged += RefreshFreeText;
+        RefreshFreeText();
+    }
+
+    void OnDisable()
+    {
+        if (RewardManager.I != null)
+            RewardManager.I.OnFreeCountsChanged -= RefreshFreeText;
     }
 }

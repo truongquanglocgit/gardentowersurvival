@@ -177,7 +177,7 @@ public class TowerUpgradeUI : MonoBehaviour
         bool canUpgrade = current.CanUpgrade && GameController.Instance.Seed >= upCost;
         int sellVal = current.GetSellPrice();
 
-        if (txtUpgradePrice) txtUpgradePrice.text = current.CanUpgrade ? $"\n-{upCost}" : "Max Level";
+        if (txtUpgradePrice) txtUpgradePrice.text = current.CanUpgrade ? $"-{upCost}" : "Max Level";
         if (txtSellPrice) txtSellPrice.text = $"+{sellVal}";
 
         // Dim toàn bộ cụm upgrade khi không đủ điều kiện
@@ -236,7 +236,15 @@ public class TowerUpgradeUI : MonoBehaviour
             container.GetChild(i).gameObject.SetActive(false);
     }
 
-    
+    private bool UpgradeForFree(TowerController t)
+    {
+        if (!t || !t.CanUpgrade) return false;
+
+        // Bẻ nhẹ logic: cộng tạm Seed bằng đúng GetUpgradeCost() rồi gọi Upgrade()
+        int need = t.GetUpgradeCost();
+        if (GameController.Instance) GameController.Instance.AddSeed(need);
+        return t.Upgrade();
+    }
 
     public void OnClickUpgrade()
     {

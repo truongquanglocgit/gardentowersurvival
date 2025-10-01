@@ -402,7 +402,15 @@ public class WaveManager : MonoBehaviour
 
             // Chơi 1 wave
             yield return StartCoroutine(PlaySingleWave(wave));
+            // === REWARD INTERLUDE (giữa hai wave) ===
+            if (!IsLastWave && RewardManager.I != null && RewardManager.I.rewardPanel != null)
+            {
+                // Mở reward (random FreeTower / Upgrade / Water)
+                RewardManager.I.RollAndPresentReward();
 
+                // CHỜ tới khi panel đóng (RewardPanel auto pause game; slider dùng unscaled)
+                yield return new WaitUntil(() => !RewardManager.I.rewardPanel.gameObject.activeSelf);
+            }
             // Inter-wave delay (nếu chưa phải last wave)
             if (!IsLastWave)
             {

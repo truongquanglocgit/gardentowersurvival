@@ -65,44 +65,75 @@ public class EnemyNavChase : MonoBehaviour
     {
         if (isDead || !player) return;
 
-        // Guard cực kỳ quan trọng
+        // 1) Early-out khi freeze time để tránh toán học sinh NaN
+        if (Time.timeScale <= 0f)
+        {
+            if (agent && agent.enabled && agent.isOnNavMesh)
+                agent.isStopped = true;    // đảm bảo đứng yên
+            return;
+        }
+
+        // Guard: agent hợp lệ trên NavMesh
         if (!agent.enabled || !agent.isOnNavMesh) { TryRepositionToNavMesh(); return; }
 
         float dist = Vector3.Distance(transform.position, player.position);
         bool inRange = dist <= attackRange;
 
-        // Gọi isStopped chỉ khi agent hợp lệ
+        // Chỉ gọi isStopped khi agent hợp lệ
         agent.isStopped = inRange;
 
-        if (!inRange)
+        if (inRange) return;
+
+        // 2) Tính hướng mong muốn
+        Vector3 vel = agent.velocity; vel.y = 0f;
+
+        if (vel.sqrMagnitude > 0.0001f)
         {
-            Vector3 vel = agent.velocity; vel.y = 0f;
+            Vector3 wantDir = vel.normalized;
+            lastMoveDir = Vector3.Slerp(lastMoveDir, wantDir, dirLerp);
+        }
+        else
+        {
+            Vector3 steer = agent.steeringTarget - transform.position; steer.y = 0f;
+            if (steer.sqrMagnitude > 0.0001f)
+                lastMoveDir = Vector3.Slerp(lastMoveDir, steer.normalized, dirLerp * 0.5f);
+        }
 
-            Vector3 wantDir = Vector3.zero;
-            if (vel.sqrMagnitude > 0.0001f)
+        // 3) Chỉ xoay khi có hướng hợp lệ
+        if (lastMoveDir.sqrMagnitude > 0.0001f)
+        {
+            // Lấy dt an toàn (deltaTime > 0 do đã early-out ở trên)
+            float dt = Time.deltaTime;
+
+            float curYaw = transform.eulerAngles.y;
+
+            // targetYaw: tránh gọi LookRotation nếu lastMoveDir ~ zero
+            float targetYaw = Quaternion.LookRotation(lastMoveDir, Vector3.up).eulerAngles.y;
+
+            // SmoothDampAngle: có thể sinh NaN nếu input hỏng; ta kẹp bảo vệ
+            float smoothYaw = Mathf.SmoothDampAngle(curYaw, targetYaw, ref yawVel, turnSmoothTime);
+
+            if (float.IsNaN(smoothYaw) || float.IsInfinity(smoothYaw))
             {
-                wantDir = vel.normalized;
-                lastMoveDir = Vector3.Slerp(lastMoveDir, wantDir, dirLerp);
-            }
-            else
-            {
-                Vector3 steer = agent.steeringTarget - transform.position; steer.y = 0f;
-                if (steer.sqrMagnitude > 0.0001f)
-                    lastMoveDir = Vector3.Slerp(lastMoveDir, steer.normalized, dirLerp * 0.5f);
+                // Reset vận tốc góc nếu đã bị nhiễm NaN
+                yawVel = 0f;
+                smoothYaw = targetYaw;
             }
 
-            if (lastMoveDir.sqrMagnitude > 0.0001f)
+            // Kẹp tốc độ quay theo frame
+            float maxStep = maxYawDegPerSec * dt;
+            float delta = Mathf.DeltaAngle(curYaw, smoothYaw);
+            delta = Mathf.Clamp(delta, -maxStep, maxStep);
+
+            float nextYaw = curYaw + delta;
+
+            if (!float.IsNaN(nextYaw) && !float.IsInfinity(nextYaw))
             {
-                float curYaw = transform.eulerAngles.y;
-                float targetYaw = Quaternion.LookRotation(lastMoveDir, Vector3.up).eulerAngles.y;
-                float smoothYaw = Mathf.SmoothDampAngle(curYaw, targetYaw, ref yawVel, turnSmoothTime);
-                float maxStep = maxYawDegPerSec * Time.deltaTime;
-                float delta = Mathf.DeltaAngle(curYaw, smoothYaw);
-                delta = Mathf.Clamp(delta, -maxStep, maxStep);
-                transform.rotation = Quaternion.Euler(0f, curYaw + delta, 0f);
+                transform.rotation = Quaternion.Euler(0f, nextYaw, 0f);
             }
         }
     }
+
 
     IEnumerator RepathLoop()
     {

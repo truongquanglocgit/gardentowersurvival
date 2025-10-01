@@ -70,7 +70,7 @@ using UnityEngine.Rendering.Universal; // URP camera stack
                 // Không có UICam (ví dụ MainMenu) -> dùng Overlay cho tiện
                 tutorialCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 tutorialCanvas.worldCamera = null;
-                Debug.Log("[Tutorial] No UICam found → Canvas set to ScreenSpace-Overlay.");
+                //Debug.Log("[Tutorial] No UICam found → Canvas set to ScreenSpace-Overlay.");
                 return;
             }
 

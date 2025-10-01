@@ -19,6 +19,7 @@ MonoBehaviour:
     enemyId: e1
     count: 10
     interval: 2
-    powerMultiplier: 1
+    powerMultiplier: 1.2
   aliveCap: 60
   interWaveDelay: 5
+  isBossWave: 0

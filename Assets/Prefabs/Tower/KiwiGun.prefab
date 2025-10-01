@@ -596,6 +596,9 @@ MonoBehaviour:
   ringWidth: 0.06
   ringSegments: 80
   ringYOffset: 0.03
+  towerMask:
+    serializedVersion: 2
+    m_Bits: 0
   enablePulse: 1
   pulseSpeed: 4
   pulseAlphaMin: 0.35
@@ -917,11 +920,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400004, guid: 06ea787239630904ba1e0dcffd3b97dd, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1.2
+      value: 1.7
       objectReference: {fileID: 0}
     - target: {fileID: 400004, guid: 06ea787239630904ba1e0dcffd3b97dd, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1.2
+      value: 1.7
       objectReference: {fileID: 0}
     - target: {fileID: 400004, guid: 06ea787239630904ba1e0dcffd3b97dd, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1880,6 +1883,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe9cafa4e05e26f418c1c38f6a66d358, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  undergroundLayerName: Underground
+  skipUndergroundEnemies: 1
   meleeSFXSource: {fileID: 0}
   laserSFXSource: {fileID: 0}
   upgradeSFX: {fileID: 8300000, guid: 696f762366b075d42b6286bdaa1ace40, type: 3}

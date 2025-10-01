@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23ea7baef1366cb4886851269c613015, type: 3}
+  m_Name: Step17
+  m_EditorClassIdentifier: 
+  waitForExternalSignal: 0
+  externalSignalKey: DoneRoll
+  armSignalInSceneName: 
+  consumeSignal: 0
+  useTypewriter: 1
+  typewriterCharsPerSecond: 28
+  typewriterUseUnscaledTime: 1
+  typewriterAllowSkip: 1
+  chatBubbleUseCustomPos: 1
+  chatBubbleCustomPos: {x: 0, y: 0}
+  chatBubblePosAsScreenSpace: 0
+  showUIArrow: 0
+  uiArrowRadialOffset: 300
+  uiArrowBobAmplitude: 6
+  uiArrowBobFrequency: 2
+  uiArrowOrientationOffset: 90
+  timeCountdown: 0
+  pointArrowOnWorldTarget: 0
+  arrowPrefab: {fileID: 0}
+  arrowAnchorPath: ArrowAnchor
+  arrowUIOffset: {x: 0, y: 80}
+  arrowLocalOffset: {x: 0, y: 2, z: 0}
+  freezeTime: 1
+  stepId: s4
+  mode: 0
+  chatText: Yay !! you made it. Now you can go and clean next gardent. Good Luck
+  speakerAvatar: {fileID: 21300000, guid: 782dc30e1f602c348bf00a639ad506cb, type: 3}
+  chatBubbleOffset: {x: 0, y: 120}
+  resolveMode: 0
+  uiTargetRef: {fileID: 0}
+  targetName: 
+  targetTag: 
+  findTimeout: 8
+  tapAnywhereHighlightTarget: 1
+  tapAnywherePassThroughUI: 0
+  requireButtonClick: 1
+  requiredButtonChildName: 
+  showFocus: 1
+  focusPadding: {x: 16, y: 16}
+  showPointerArrow: 0

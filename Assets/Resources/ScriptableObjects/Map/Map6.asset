@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6abd16be88f1348449e1de3ac105b9bd, type: 3}
   m_Name: Map6
   m_EditorClassIdentifier: Assembly-CSharp::MapData
-  mapName: Map6
+  mapId: Map16
+  orderIndex: 6
+  mapName: Map 2 - 3
   previewImage: {fileID: 21300000, guid: cf1551993151f534b94678d2ff0e8c6b, type: 3}
   sceneToLoad: Map6
   waterReward: 1000
@@ -30,7 +32,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a62b29139ebddab479cfa32f5d985ce6, type: 2}
   - {fileID: 11400000, guid: 5f83cba1789cdd64aaaed18d8b0cddd9, type: 2}
   - {fileID: 11400000, guid: d40fa2ae31c3d334d98e9cac017d5141, type: 2}
-  previewPrefab: {fileID: 726782838106201824, guid: df72e0018338e5f44968b420434826e6, type: 3}
+  previewPrefab: {fileID: 587365190639914207, guid: 025cd0fd036dca24ea953bb35c0eec92, type: 3}
   previewPosition: {x: 0, y: 0, z: 0}
   previewEuler: {x: 0, y: 30, z: 0}
   previewScale: 1

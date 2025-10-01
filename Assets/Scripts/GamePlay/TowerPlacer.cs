@@ -167,22 +167,36 @@ public class TowerPlacer : MonoBehaviour
         int cost = GetSeedCost(currentTower.prefab);
         GameController gc = FindObjectOfType<GameController>();
 
-        if (gc.Seed < cost)
+        // === NEW: check đặt miễn phí từ RewardManager ===
+        bool placedFree = false;
+        if (RewardManager.I != null && RewardManager.I.TryConsumeFree(currentTower))
         {
-            ShowSeedWarning($"Not enough Seed! Need {cost}");
-            return;
-        }
-        if (!gc.CanPlaceTower())
-        {
-            ShowSeedWarning("🚫 Max towers placed!");
-            return;
+            placedFree = true;
         }
 
-        // ✅ Place
-        gc.Seed -= cost;
+        // Nếu không miễn phí → check seed như cũ
+        if (!placedFree)
+        {
+            if (gc.Seed < cost)
+            {
+                ShowSeedWarning($"Not enough Seed! Need {cost}");
+                return;
+            }
+            if (!gc.CanPlaceTower())
+            {
+                ShowSeedWarning("🚫 Max towers placed!");
+                return;
+            }
+
+            // trừ seed
+            gc.Seed -= cost;
+        }
+
+        // ✅ Place tower
         pos.y += 0.2f;
         Instantiate(currentTower.prefab, pos, Quaternion.identity);
         gc.UpdateTowerCount(1);
+
         // 🔊 Placement SFX
         if (placementSFX)
         {
@@ -191,8 +205,8 @@ public class TowerPlacer : MonoBehaviour
         }
 
         CancelPlacement();
-        
     }
+
 
     public void CancelPlacement()
     {
@@ -353,21 +367,31 @@ public class TowerPlacer : MonoBehaviour
         if (currentTower && currentTower.prefab && gc)
         {
             int cost = GetSeedCost(currentTower.prefab);
-            bool enoughSeed = gc.Seed >= cost;
-            bool canPlace = gc.CanPlaceTower();
             bool blocked = IsBlockedAtPreview();
+            bool canPlace = gc.CanPlaceTower();
 
-            interact = enoughSeed && canPlace && !blocked;
+            // ✅ NEW: check free từ RewardManager
+            bool hasFree = RewardManager.I != null && RewardManager.I.GetFreeCount(currentTower) > 0;
 
-            if (placeButtonText)
+            if (hasFree)
             {
-                label = !enoughSeed ? $"Need {cost}" : (blocked ? "Blocked" : $"Place (-{cost})");
+                interact = canPlace && !blocked;
+                label = blocked ? "Blocked" : "Place (Free)";
+            }
+            else
+            {
+                bool enoughSeed = gc.Seed >= cost;
+                interact = enoughSeed && canPlace && !blocked;
+
+                if (placeButtonText)
+                    label = !enoughSeed ? "Not Enough Seed" : (blocked ? "Blocked" : $"Place ({cost})");
             }
         }
 
         placeButton.interactable = interact;
         if (placeButtonText) placeButtonText.text = label;
     }
+
 
     // ===== NEW: check chỗ đặt có đè lên tower khác không =====
     bool IsBlockedAtPreview()

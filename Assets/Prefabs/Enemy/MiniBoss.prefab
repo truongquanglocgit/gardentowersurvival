@@ -421,12 +421,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d4a65b062766ae48a94c5eb2c796216, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  deathVFXPrefab: {fileID: 19800006, guid: 2a474af3f4c27be4e9bdce39cfe4315d, type: 3}
-  forceDetachDeathSFX: 0
+  groundStickRayHeight: 3
+  groundStickYOffset: 0.02
+  groundStickMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  disableCollidersOnDeath: 1
+  deadLayerName: DeadEnemy
   deathVFXAnchor: {fileID: 4431640936352066265}
   deathVFXPositionOffset: {x: 0, y: 0, z: 0}
   deathVFXEulerOffset: {x: 0, y: 0, z: 0}
   deathVFXScale: {x: 2, y: 2, z: 2}
+  embeddedDeathVFX: {fileID: 0}
+  embeddedVFXHome: {fileID: 0}
+  deathVFXPrefab: {fileID: 19800006, guid: 2a474af3f4c27be4e9bdce39cfe4315d, type: 3}
+  forceDetachDeathSFX: 0
   deathVFXParentToAnchor: 0
   deathVFXAutoDestroy: 1
   attackImpactSFX: {fileID: 8300000, guid: c149a5b5299974c4183ac0b2ea58a9a0, type: 3}
@@ -464,6 +473,8 @@ MonoBehaviour:
   damageTextAnchor: {fileID: 4666832500247053577}
   normalDamageColor: {r: 0.95, g: 0.15, b: 0.15, a: 1}
   damageTextYOffset: 0.05
+  modelRoot: {fileID: 8409452067881587203}
+  deathTiltDegX: 180
 --- !u!54 &52961755890321689
 Rigidbody:
   m_ObjectHideFlags: 0

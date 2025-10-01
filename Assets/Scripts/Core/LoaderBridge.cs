@@ -37,6 +37,7 @@ public static class LoaderBridge
         }
 
         SceneManager.LoadScene(loadingSceneName, LoadSceneMode.Single);
+
     }
 
     public static AsyncOperation BeginLoadTargetScene()
@@ -65,8 +66,7 @@ public static class LoaderBridge
             TargetSceneName = null;
             SceneManager.sceneLoaded -= OnSceneLoaded;
             _hooked = false;
-
-            Debug.Log("[LoaderBridge] Scene loaded. IsLoading=false.");
+            
         }
     }
 }

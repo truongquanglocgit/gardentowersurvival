@@ -491,6 +491,8 @@ MonoBehaviour:
   damageTextAnchor: {fileID: 7685230346823860352}
   normalDamageColor: {r: 0.95, g: 0.15, b: 0.15, a: 1}
   damageTextYOffset: 0.05
+  modelRoot: {fileID: 8470304767137633209}
+  deathTiltDegX: 180
 --- !u!114 &2065667668084107394
 MonoBehaviour:
   m_ObjectHideFlags: 0

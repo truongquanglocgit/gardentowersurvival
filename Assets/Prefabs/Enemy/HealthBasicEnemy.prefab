@@ -601,6 +601,8 @@ MonoBehaviour:
   damageTextAnchor: {fileID: 4466577558318768707}
   normalDamageColor: {r: 0.95, g: 0.15, b: 0.15, a: 1}
   damageTextYOffset: 0.05
+  modelRoot: {fileID: 4361498024062584018}
+  deathTiltDegX: 180
 --- !u!114 &7724506260142527108
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1235,12 +1237,20 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8877181580826789649, guid: 1e1ca04f2e8816a4fb5672a117fd7a10, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 8877181580826789649, guid: 1e1ca04f2e8816a4fb5672a117fd7a10, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 8877181580826789649, guid: 1e1ca04f2e8816a4fb5672a117fd7a10, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8877181580826789649, guid: 1e1ca04f2e8816a4fb5672a117fd7a10, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1
+      value: 59
       objectReference: {fileID: 0}
     - target: {fileID: 8877181580826789649, guid: 1e1ca04f2e8816a4fb5672a117fd7a10, type: 3}
       propertyPath: m_LocalPosition.z

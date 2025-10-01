@@ -16,8 +16,8 @@ MonoBehaviour:
   items:
   - startTime: 10
     spawnerId: s2
-    enemyId: he1
-    count: 1
+    enemyId: e2
+    count: 5
     interval: 0
     powerMultiplier: 1
   - startTime: 0

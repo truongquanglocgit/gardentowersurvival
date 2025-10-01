@@ -296,8 +296,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 0
   serializedVersion: 3
-  m_Size: {x: 1.51, y: 0.94, z: 1.88}
-  m_Center: {x: 0, y: 0.51, z: 0}
+  m_Size: {x: 1.51, y: 0.52684796, z: 1.88}
+  m_Center: {x: 0, y: 0.30342388, z: 0}
 --- !u!54 &52961755890321689
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -343,7 +343,7 @@ NavMeshAgent:
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
   m_AutoRepath: 1
-  m_Height: 1
+  m_Height: 0.99
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
@@ -392,6 +392,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d4a65b062766ae48a94c5eb2c796216, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  groundStickRayHeight: 3
+  groundStickYOffset: 0.02
+  groundStickMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  disableCollidersOnDeath: 1
+  deadLayerName: DeadEnemy
   deathVFXAnchor: {fileID: 4431640936352066265}
   deathVFXPositionOffset: {x: 0, y: 0, z: 0}
   deathVFXEulerOffset: {x: 0, y: 0, z: 0}
@@ -437,6 +444,8 @@ MonoBehaviour:
   damageTextAnchor: {fileID: 3435740204427669681}
   normalDamageColor: {r: 0.95, g: 0.15, b: 0.15, a: 1}
   damageTextYOffset: 0.05
+  modelRoot: {fileID: 6347535959289065764}
+  deathTiltDegX: 180
 --- !u!114 &8553910728237292390
 MonoBehaviour:
   m_ObjectHideFlags: 0

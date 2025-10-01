@@ -17,7 +17,7 @@ MonoBehaviour:
   - startTime: 0
     spawnerId: s1
     enemyId: e2
-    count: 3
+    count: 5
     interval: 2
     powerMultiplier: 0.8
   - startTime: 7

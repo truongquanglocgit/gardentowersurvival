@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -6,9 +6,13 @@ using TMPro;
 using UnityEngine.UI;
 using UnityEngine.Audio;
 using Unity.VisualScripting;
-
+using System.Linq;
+using static UnityEngine.Rendering.DebugUI;
+using static UnityEngine.UIElements.UxmlAttributeDescription;
 public class GameController : MonoBehaviour
 {
+    public UseShieldPanel UseShieldPanel; 
+    public Canvas TotalCanvas;
     // ================== Core Refs ==================
     [Header("Core Refs")]
     public WaveManager waveManager;
@@ -113,10 +117,26 @@ public class GameController : MonoBehaviour
 
     [Header("Default Volumes")]
     [Range(0f, 1f)] public float defaultMusicVol = 0.6f;
-    
+
+    // === NEW: Revive UI & Config ===
+    [Header("Revive")]
+    [Tooltip("Panel hiển thị khi player chết, cho phép chọn Revive")]
+    public GameObject revivePanel;
+    [Min(0)] public int reviveCostSeed = 50;
+    [Tooltip("Bật vô địch ngắn sau khi revive (giây). 0 = tắt")]
+    [Min(0f)] public float postReviveInvuln = 2f;
+    [Header("Revive")]
+
+
+    // NEW: UI hiển thị seed còn lại
+    [Tooltip("Text trong Revive Panel hiển thị số seed hiện tại")]
+    public TMPro.TextMeshProUGUI reviveSeedText;
+    public TMPro.TextMeshProUGUI costSeedText;
+    private bool _tutorialFreeReviveThisRun = false; // phiên hiện tại free revive?
 
     void Awake()
     {
+
         currentTowerCount = 0;
         Instance = this;
 
@@ -173,7 +193,17 @@ public class GameController : MonoBehaviour
         WaveManager.OnInterWaveDelayStarted += HandleInterDelay_BGM;
         WaveManager.OnAllWavesCompleted += HandleAllWaves_BGM;
     }
-
+    private void UpdateReviveSeedText()
+    {
+        if (reviveSeedText != null && CurrencyManager.Instance != null)
+        {
+            reviveSeedText.text = $"{CurrencyManager.Instance.seedAmount} WATER";
+        }
+        if (costSeedText != null)
+        {
+            costSeedText.text = $"-{reviveCostSeed} WATER";
+        }
+    }
     void OnDisable()
     {
         // Unsubscribe wave audio events
@@ -185,14 +215,14 @@ public class GameController : MonoBehaviour
     void Start()
     {
         if (dieCanvas) dieCanvas.SetActive(false);
-
+        if(UseShieldPanel) UseShieldPanel.ClosePanel();
         // 0) Set mixer trước, KHÔNG chờ slider
         if (masterMixer)
         {
             masterMixer.SetFloat(MUSIC_PARAM, Linear01ToDb(defaultMusicVol));
             masterMixer.SetFloat(SFX_PARAM, Linear01ToDb(defaultSfxVol));
         }
-
+        
         // 1) Dọn toàn bộ listener cũ để tránh “static = 0” còn sót
         if (musicSlider) musicSlider.onValueChanged.RemoveAllListeners();
         if (sfxSlider) sfxSlider.onValueChanged.RemoveAllListeners();
@@ -239,7 +269,17 @@ public class GameController : MonoBehaviour
             player.position = playerSpawnPoint.position;
             player.rotation = playerSpawnPoint.rotation;
         }
-
+        var pd = PlayerDataManager.Instance?.playerData;
+        if (pd != null && pd.tutorialCompleted == false)
+        {
+            _tutorialFreeReviveThisRun = true;
+            reviveCostSeed = 0; // miễn phí revive ở phiên này
+        }
+        else
+        {
+            _tutorialFreeReviveThisRun = false;
+            // reviveCostSeed giữ nguyên theo config
+        }
         // Camera follow
         var cam = Camera.main ? Camera.main.GetComponent<CameraOrbit>() : null;
         if (cam && player) cam.target = player.transform;
@@ -304,7 +344,7 @@ public class GameController : MonoBehaviour
         var spawners = GameObject.FindGameObjectsWithTag("Spawner");
         foreach (var go in spawners)
         {
-            
+
             if (!go) continue;
             var sc = go.GetComponent<Spawner>();   // <-- sửa ở đây
             sc.hideArrow();
@@ -580,8 +620,18 @@ public class GameController : MonoBehaviour
     // ================== Game Flow ==================
     public void winning()
     {
+
         CurrencyManager.Instance?.AddSeed(GameSession.Instance.currentMapData.waterReward);
+
+        // NEW: mark completed map
+        var map = GameSession.Instance?.currentMapData;
+        if (map && PlayerDataManager.Instance)
+            PlayerDataManager.Instance.MarkMapCompleted(map.mapId);
+
+        // Nếu map này chính là tutorial/trong flow tutorial, bạn có thể:
+        // PlayerDataManager.Instance.MarkTutorialCompleted();
     }
+
 
     public bool TrySpendSeed(int amount)
     {
@@ -593,13 +643,151 @@ public class GameController : MonoBehaviour
 
     public void die()
     {
-        Time.timeScale = 0;
-        Debug.Log(" Player Died");
+        // Pause game
+        Time.timeScale = 0f;
+        Debug.Log("Player Died");
+
         StopBGM(0.4f); // fade out nhạc
-        if (dieCanvas != null) dieCanvas.SetActive(true);
-        else Debug.LogError(" dieCanvas is NULL. Check inspector reference!");
+
+        // Ưu tiên panel Revive
+        if (revivePanel != null)
+        {
+            UpdateReviveSeedText();
+            revivePanel.SetActive(true);
+
+        }
+        else
+        {
+            // Fallback: nếu chưa set revivePanel, dùng dieCanvas như cũ
+            if (dieCanvas != null) dieCanvas.SetActive(true);
+            else Debug.LogError("dieCanvas is NULL. Check inspector reference!");
+        }
+    }
+    public void OnClickRevive()
+    {
+        bool paid = true;
+
+        if (!(_tutorialFreeReviveThisRun && reviveCostSeed == 0))
+        {
+            // không free → trừ seed bình thường
+            if (CurrencyManager.Instance != null)
+                paid = CurrencyManager.Instance.TrySpendSeed(reviveCostSeed);
+            else
+                paid = TrySpendSeed(0); // fallback
+        }
+
+        if (!paid)
+        {
+            Debug.Log("❌ Not enough seed to revive.");
+            if (revivePanel) revivePanel.SetActive(false);
+            if (dieCanvas) dieCanvas.SetActive(true);
+            return;
+        }
+
+        if (!TryRevivePlayer())
+            Debug.LogWarning("⚠️ Revive attempt failed.");
+
+        if (revivePanel) revivePanel.SetActive(false);
+        if (dieCanvas) dieCanvas.SetActive(false);
+
+        Time.timeScale = 1f;
+        UpdateReviveSeedText();
     }
 
+
+    public void OnClickGiveUp()
+    {
+        if (revivePanel) revivePanel.SetActive(false);
+        if (dieCanvas) dieCanvas.SetActive(true);
+
+        var pd = PlayerDataManager.Instance?.playerData;
+        if (pd != null && pd.tutorialCompleted == false)
+        {
+            // Thưởng 100 seed khi người chơi Give Up lúc chưa hoàn thành tutorial
+            if (CurrencyManager.Instance != null) CurrencyManager.Instance.AddSeed(100);
+            else AddSeed(100); // fallback
+
+            Debug.Log("+100 seed (tutorial give-up bonus).");
+        }
+
+        UpdateReviveSeedText();
+    }
+
+    // === NEW: Core revive implementation ===
+    private bool TryRevivePlayer()
+    {
+        if (!player)
+        {
+            var p = GameObject.FindGameObjectWithTag("Player");
+            if (p) player = p.transform;
+        }
+        if (!player) return false;
+
+        // Đưa về spawn point (nếu có)
+        if (playerSpawnPoint)
+        {
+            player.position = playerSpawnPoint.position;
+            player.rotation = playerSpawnPoint.rotation;
+        }
+
+        // Gọi API revive trên PlayerController
+        if (player.TryGetComponent(out PlayerController pc))
+        {
+            pc.ReviveFull();
+            if (postReviveInvuln > 0f)
+                pc.SetInvulnerableForSeconds(postReviveInvuln);
+        }
+        else
+        {
+            // Fallback: không có PlayerController
+            Debug.LogWarning("PlayerController not found on Player. Revive fallback to HP full is skipped.");
+        }
+
+        // Báo cho các script khác nếu cần
+        if (HasMethodOn(player.gameObject, "OnRevived"))
+            player.gameObject.SendMessage("OnRevived", SendMessageOptions.DontRequireReceiver);
+
+        // Phát lại BGM thường
+        PlayBGM(0);
+
+        return true;
+    }
+
+    // === Helpers cho revive ===
+    private static bool HasMethod(object target, string methodName)
+    {
+        if (target == null) return false;
+        var t = target.GetType();
+        return t.GetMethod(methodName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic) != null;
+    }
+    private static bool HasMethodOn(GameObject go, string methodName)
+    {
+        if (!go) return false;
+        var comps = go.GetComponents<MonoBehaviour>();
+        foreach (var c in comps)
+        {
+            if (!c) continue;
+            if (HasMethod(c, methodName)) return true;
+        }
+        return false;
+    }
+
+    private static bool TryFillHealthByReflection(object target)
+    {
+        if (target == null) return false;
+        var t = target.GetType();
+
+        var cur = t.GetField("currentHealth", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+        var max = t.GetField("maxHealth", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+
+        if (cur != null && max != null)
+        {
+            object maxVal = max.GetValue(target);
+            cur.SetValue(target, maxVal);
+            return true;
+        }
+        return false;
+    }
     public void TryAgain()
     {
         Time.timeScale = 1f;
@@ -611,6 +799,15 @@ public class GameController : MonoBehaviour
         currentTowerCount += number;
         if (towerCountText != null)
             towerCountText.text = $"Tower: {currentTowerCount} / {maxTowerCount}";
+    }
+    public void openShieldPanel()
+    {
+        if (UseShieldPanel) UseShieldPanel.OpenPanel();
+    }
+
+    public void closeShieldPanel()
+    {
+        if (UseShieldPanel) UseShieldPanel.ClosePanel();
     }
 
     public bool CanPlaceTower() => currentTowerCount < maxTowerCount;

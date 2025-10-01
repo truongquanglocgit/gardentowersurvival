@@ -9,10 +9,21 @@ public class PlayerController : MonoBehaviour
     public float MaxHp = 150f;
     public float Hp;
     public float Speed;
-
+    [Header("Regen (heal over time)")]
+    [Tooltip("Bật/tắt hồi máu sau khi không bị đánh")]
+    public bool enableRegen = true;
+    [Min(0f)] public float regenDelaySeconds = 5f;     // sau 5s không bị đánh
+    [Min(0f)] public float regenPerSecond = 8f;        // hồi X máu mỗi giây
+    float _lastDamageTime = -999f;                     // thời điểm bị đánh gần nhất
     [Header("UI - Damage Overlay")]
     [Tooltip("CanvasGroup của ảnh viền đỏ (đặt trên Canvas, full screen)")]
     public CanvasGroup damageOverlay;
+    [Header("UI - Health Overlay (NEW)")]
+    [Tooltip("CanvasGroup overlay hiển thị khi chưa full máu (nhấp nháy)")]
+    public CanvasGroup healthOverlay;
+    private bool _isRegenerating = false;
+    [Range(0f, 1f)] public float healthOverlayAlpha = 0.4f;
+    [Min(0.2f)] public float healthOverlayBlinkFrequency = 1.5f; // chu kỳ nháy
     [Range(0f, 1f)] public float hitFlashAlpha = 0.85f;
     [Tooltip("Thời gian mờ dần sau khi bị hit")]
     [Min(0.05f)] public float hitFadeDuration = 0.5f;
@@ -35,46 +46,99 @@ public class PlayerController : MonoBehaviour
     float _flashAlpha;   // alpha do flash mỗi lần bị hit
     float _blinkAlpha;   // alpha do blink khi low HP
     bool _lowHpLoopRunning;
+    [Header("Invulnerability")]
+    [Tooltip("Bất tử trong thời gian SetInvulnerableForSeconds()")]
+    public bool isInvulnerable = false;
+    [Header("Invulnerability VFX")]
+    [Tooltip("Kéo vào GameObject/Prefab VFX shield gắn sẵn trên Player")]
+    public GameObject shieldVFX;
+    [Tooltip("Nếu có ParticleSystem trên shieldVFX, sẽ Play/Stop thay vì chỉ SetActive")]
+    public bool controlParticle = true;
+    bool _shieldPanelOpen = false; // nhớ trạng thái panel
 
     void Awake()
     {
-        Hp = MaxHp; // reset HP đúng khi load scene
-        ApplyOverlayAlpha(0f);
-    }
-
-    public void ResetHp()
-    {
         Hp = MaxHp;
-        StopAllOverlay();
         ApplyOverlayAlpha(0f);
-        StopLowHpLoopSfx();
-    }
-    public void Healing()
-    {
-        
-    }
-    public void TakeDamage(float damage)
-    {
-        if (Hp <= 0) return;
 
-        Hp = Mathf.Max(0f, Hp - damage);
-
-        // SFX hit 1 lần
-        if (audioSource && hitSfx) audioSource.PlayOneShot(hitSfx);
-
-        // Flash viền đỏ rồi mờ dần
-        StartFlash();
-
-        // Bật/tắt trạng thái blink + loop SFX theo HP
-        UpdateLowHpState();
-
-        if (Hp <= 0f)
+        // NEW: đảm bảo tắt shield khi vào scene
+        if (shieldVFX)
         {
-            StopAllOverlay();
-            StopLowHpLoopSfx();
-            gameController.die();
+            var ps = shieldVFX.GetComponent<ParticleSystem>();
+            if (controlParticle && ps) ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            shieldVFX.SetActive(false);
         }
     }
+
+    
+
+    void Update()
+    {
+        // === Regen logic ===
+        if (enableRegen && Hp > 0f && Hp < MaxHp && Time.timeScale > 0f)
+        {
+            if (Time.time - _lastDamageTime >= regenDelaySeconds)
+            {
+                // Bắt đầu regen → bật cờ
+                if (!_isRegenerating) _isRegenerating = true;
+
+                float before = Hp;
+                Hp = Mathf.Min(MaxHp, Hp + regenPerSecond * Time.deltaTime);
+                if (!Mathf.Approximately(before, Hp))
+                {
+                    UpdateLowHpState();
+                }
+
+                // Nếu đầy máu → tắt regen
+                if (Hp >= MaxHp)
+                {
+                    _isRegenerating = false;
+                }
+            }
+            else
+            {
+                // Chưa tới thời gian delay → chưa regen
+                _isRegenerating = false;
+            }
+        }
+        else
+        {
+            _isRegenerating = false;
+        }
+        // Tính phần trăm HP
+        float hpPct = (MaxHp > 0f) ? (Hp / MaxHp) : 0f;
+        bool isLowHp = hpPct <= 0.5f;
+
+        // ✨ Chỉ mở khi vừa chuyển sang low HP
+        if (isLowHp && !_shieldPanelOpen)
+        {
+            gameController.openShieldPanel(); // gọi qua GameController như bạn đang làm
+            _shieldPanelOpen = true;
+        }
+        // ✨ Chỉ đóng khi hồi lại trên ngưỡng
+        else if (!isLowHp && _shieldPanelOpen)
+        {
+            gameController.closeShieldPanel();
+            _shieldPanelOpen = false;
+        }
+
+        // === NEW: HealthOverlay chỉ nháy khi đang regen ===
+        if (healthOverlay != null)
+        {
+            if (_isRegenerating)
+            {
+                float t = Time.unscaledTime;
+                float blink = (Mathf.Sin((t / healthOverlayBlinkFrequency) * Mathf.PI * 2f) * 0.5f + 0.5f);
+                float a = blink * healthOverlayAlpha;
+                ApplyHealthOverlayAlpha(a);
+            }
+            else
+            {
+                ApplyHealthOverlayAlpha(0f);
+            }
+        }
+    }
+
 
     // ===================== Overlay Logic =====================
 
@@ -188,4 +252,124 @@ public class PlayerController : MonoBehaviour
         }
         _lowHpLoopRunning = false;
     }
+    // ========= PUBLIC API cho revive/heal =========
+    public void ReviveFull()
+    {
+        Hp = MaxHp;
+        StopAllOverlay();
+        ApplyOverlayAlpha(0f);
+        StopLowHpLoopSfx();
+        UpdateLowHpState();
+        _lastDamageTime = Time.time;
+
+        // (Không bật shield ở đây; shield bật khi GameController gọi SetInvulnerableForSeconds)
+    }
+    // Nếu cần heal full mà không reset overlay
+    public void HealToFull()
+    {
+        Hp = MaxHp;
+        UpdateLowHpState();
+        _lastDamageTime = Time.time;
+    }
+
+    // Bất tử tạm (GameController sẽ gọi)
+    public void SetInvulnerableForSeconds(float seconds)
+    {
+        if (seconds <= 0f)
+        {
+            isInvulnerable = false;
+            UpdateShieldVFX(false); // NEW
+            return;
+        }
+
+        StopCoroutine(nameof(CoInvulnerable));
+        StartCoroutine(CoInvulnerable(seconds));
+    }
+
+    public IEnumerator CoInvulnerable(float sec)
+    {
+        isInvulnerable = true;
+        UpdateShieldVFX(true); // NEW: bật VFX
+
+        float t = 0f;
+        while (t < sec)
+        {
+            t += Time.unscaledDeltaTime; // unscaled để hoạt động khi pause
+            yield return null;
+        }
+
+        isInvulnerable = false;
+        UpdateShieldVFX(false); // NEW: tắt VFX
+    }
+    void UpdateShieldVFX(bool on)
+    {
+        if (!shieldVFX) return;
+
+        if (on)
+        {
+            if (!shieldVFX.activeSelf) shieldVFX.SetActive(true);
+            if (controlParticle)
+            {
+                var ps = shieldVFX.GetComponent<ParticleSystem>();
+                if (ps) ps.Play(true);
+            }
+        }
+        else
+        {
+            if (controlParticle)
+            {
+                var ps = shieldVFX.GetComponent<ParticleSystem>();
+                if (ps) ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+            shieldVFX.SetActive(false);
+        }
+    }
+    // ========= Existing =========
+    public void ResetHp()
+    {
+        Hp = MaxHp;
+        StopAllOverlay();
+        ApplyOverlayAlpha(0f);
+        StopLowHpLoopSfx();
+        _lastDamageTime = Time.time;
+    }
+
+    public void Healing()
+    {
+        // (tuỳ bạn dùng hay không)
+    }
+
+    public void TakeDamage(float damage)
+    {
+        if (Hp <= 0) return;
+        if (isInvulnerable) return;
+
+        Hp = Mathf.Max(0f, Hp - damage);
+        _lastDamageTime = Time.time;
+
+        // NEW: reset regen khi bị đánh
+        _isRegenerating = false;
+
+        if (audioSource && hitSfx) audioSource.PlayOneShot(hitSfx);
+        StartFlash();
+        UpdateLowHpState();
+
+        if (Hp <= 0f)
+        {
+            StopAllOverlay();
+            StopLowHpLoopSfx();
+            gameController.die();
+        }
+    }
+    void OnDeathCleanupShield()
+    {
+        UpdateShieldVFX(false);
+    }
+
+    void ApplyHealthOverlayAlpha(float a)
+    {
+        if (healthOverlay) healthOverlay.alpha = Mathf.Clamp01(a);
+    }
+    // ... (các coroutine/overlay/low HP giữ nguyên)
 }
+

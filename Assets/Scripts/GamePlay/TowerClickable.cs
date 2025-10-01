@@ -59,6 +59,12 @@ public class TowerClickable : MonoBehaviour
 
     void Update()
     {
+        if (TutorialManager.Instance && TutorialManager.Instance.IsWorldInputBlocked)
+        {
+            _hovered = false;
+            if (!_selected) HideRing();
+            return;
+        }
         // Bỏ qua khi trỏ lên UI
         if (EventSystem.current && EventSystem.current.IsPointerOverGameObject())
         {
@@ -144,6 +150,8 @@ public class TowerClickable : MonoBehaviour
     // ================= Common =================
     void TryClickAt(Vector2 screenPos)
     {
+        if (TutorialManager.Instance && TutorialManager.Instance.IsWorldInputBlocked) return;
+
         if (_cam == null) _cam = Camera.main;
         if (!_cam) return;
 

@@ -145,6 +145,10 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private Transform damageTextAnchor;          // có thể trùng anchor của pool
     [SerializeField] private Color normalDamageColor = new Color(0.95f, 0.15f, 0.15f);
     [SerializeField] private float damageTextYOffset = 0.05f;
+
+    [Header("Model Root (for death pose)")]
+    [SerializeField] private Transform modelRoot;   // <-- drag child model/Animator vào đây
+    [SerializeField] private float deathTiltDegX = 180f; // xoay ngửa theo trục X (nằm ngửa)
     void Awake()
     {
         // ---- NavMeshAgent config ----
@@ -635,8 +639,20 @@ public class EnemyController : MonoBehaviour
         }
 
         // 🆕 Xoay ngược enemy khi chết (nằm ngửa ra sau)
-        transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 180f);
-
+        // Xoay NGỬA chỉ phần model, không xoay root
+        if (!modelRoot && anim) modelRoot = anim.transform; // auto-fill
+        if (modelRoot)
+        {
+            // giữ nguyên hướng Y hiện tại, chỉ ngửa ra sau theo X
+            var r = modelRoot.rotation.eulerAngles; // world rot hiện tại
+                                                    // cách 1: đặt tuyệt đối theo root + tilt X
+            modelRoot.rotation = Quaternion.Euler(deathTiltDegX, transform.eulerAngles.y, 0f);
+        }
+        else
+        {
+            // fallback: nếu không có modelRoot, vẫn xoay root nhưng ít lệch hơn (xoay X thay vì Z)
+            transform.rotation = Quaternion.Euler(deathTiltDegX, transform.eulerAngles.y, 0f);
+        }
         // 🆕 Disable EnemyController để dừng toàn bộ Update/logic
         this.enabled = false;
 
@@ -646,12 +662,64 @@ public class EnemyController : MonoBehaviour
 
     // 🆕 Giữ xác đứng yên trên mặt đất
     FreezePhysicsAndStickToGround();
+        FreezePhysics();     // như cũ nhưng KHÔNG đổi vị trí ở đây
+        StickBoundsOnGround(); // kẹp theo đáy AABB thay vì theo pivot
         SetDeadLayerIfAny();
-
         StartCoroutine(HideAfterDelay(deathHideDelay));
     }
 
+    void FreezePhysics()
+    {
+        var rb = GetComponent<Rigidbody>();
+        if (rb)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.useGravity = false;
+            rb.isKinematic = true;
+            rb.detectCollisions = false;
+        }
+        if (disableCollidersOnDeath)
+        {
+            var cols = GetComponentsInChildren<Collider>(true);
+            foreach (var c in cols) c.enabled = false;
+        }
+    }
 
+    // GỘP bounds của toàn bộ Renderer để xác định đáy thực sự
+    Bounds GetCombinedRenderBounds()
+    {
+        var rends = GetComponentsInChildren<Renderer>(true);
+        if (rends.Length == 0) return new Bounds(transform.position, Vector3.one * 0.2f);
+        Bounds b = rends[0].bounds;
+        for (int i = 1; i < rends.Length; i++) b.Encapsulate(rends[i].bounds);
+        return b;
+    }
+
+    // Kẹp sao cho đáy bounds dính mặt đất (min.y = groundY + offset)
+    void StickBoundsOnGround()
+    {
+        // ray từ trên xuống để lấy groundY
+        Vector3 rayOrigin = transform.position + Vector3.up * groundStickRayHeight;
+        if (Physics.Raycast(rayOrigin, Vector3.down, out var hit, groundStickRayHeight * 2f, groundStickMask, QueryTriggerInteraction.Ignore))
+        {
+            float groundY = hit.point.y;
+            Bounds b = GetCombinedRenderBounds();   // đã tính theo world sau khi xoay
+
+            float deltaUp = (groundY + groundStickYOffset) - b.min.y; // cần nâng lên bao nhiêu
+            if (Mathf.Abs(deltaUp) > 0.0001f)
+            {
+                transform.position += new Vector3(0f, deltaUp, 0f);
+            }
+        }
+        else
+        {
+            // fallback theo pivot nếu không bắn trúng đất (hiếm)
+            Vector3 p = transform.position;
+            p.y += groundStickYOffset;
+            transform.position = p;
+        }
+    }
     void FreezePhysicsAndStickToGround()
     {
         // 🧊 Đóng băng vật lý để không rơi xuyên
@@ -744,7 +812,7 @@ public class EnemyController : MonoBehaviour
         isSlowed = false;
     }
 
-    public void ApplyBurn(float duration, float interval) => ApplyBurn(duration, interval, 5f);
+    public void ApplyBurn(float duration, float interval) => ApplyBurn(duration, interval, damage*25/100 );
     public void ApplyBurn(float duration, float interval, float damagePerTick)
     {
         StartCoroutine(BurnCoroutine(duration, interval, damagePerTick));

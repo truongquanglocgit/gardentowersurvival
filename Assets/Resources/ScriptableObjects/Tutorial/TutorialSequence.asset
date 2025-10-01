@@ -13,7 +13,30 @@ MonoBehaviour:
   m_Name: TutorialSequence
   m_EditorClassIdentifier: 
   steps:
+  - {fileID: 11400000, guid: 44e0f3dfa14e02b4296b7b90fa99271e, type: 2}
   - {fileID: 11400000, guid: e0e0ed10998e0c44ab3604fa29b61f5d, type: 2}
+  - {fileID: 11400000, guid: 1bc9de02dc0119e42b9a58da5059fb9d, type: 2}
+  - {fileID: 11400000, guid: 87218b91ac389f7499cd70f72185e366, type: 2}
+  - {fileID: 11400000, guid: f174b81a35bd9ca4b831c5ce3b61e532, type: 2}
+  - {fileID: 11400000, guid: d4ace7572433bb04eae083fb4581c6aa, type: 2}
   - {fileID: 11400000, guid: 7116b61ddb6312e45b1b32b172e93588, type: 2}
   - {fileID: 11400000, guid: c69715580aa6edc4a8af4b069f499211, type: 2}
+  - {fileID: 11400000, guid: 475b83dcd4140fd4ab3788767879455f, type: 2}
+  - {fileID: 11400000, guid: c350344d22e6af3409009f3a111bcdb2, type: 2}
   - {fileID: 11400000, guid: 85ef54159caa1e547a15c495af543394, type: 2}
+  - {fileID: 11400000, guid: 264b8770a1e157a469423a78238a9cdc, type: 2}
+  - {fileID: 11400000, guid: fb3fa457b1080284fa3c31c8df7d90fe, type: 2}
+  - {fileID: 11400000, guid: 5eb51c5cc356da245944bfa940e9d7a0, type: 2}
+  - {fileID: 11400000, guid: 3e5f424c969023344aa815956cee4439, type: 2}
+  - {fileID: 11400000, guid: 69cfe7ad9dbac544ca0a0569a1f0e89a, type: 2}
+  - {fileID: 11400000, guid: 7b020f82f32a2894cad91efa3ca32a7c, type: 2}
+  - {fileID: 11400000, guid: aa725d65d39c8164eaffae3c395e8518, type: 2}
+  - {fileID: 11400000, guid: cdfad090e5754f14b9ea4220fd7ee267, type: 2}
+  - {fileID: 11400000, guid: 210d656655aa11a439662a0bd28d63aa, type: 2}
+  - {fileID: 11400000, guid: dc31cba097e25584ea4b7aa1d3226d5c, type: 2}
+  - {fileID: 11400000, guid: 7e38ee13ddf07a24ba92b7ce71da8521, type: 2}
+  - {fileID: 11400000, guid: 690d209124a265d49b97c998905941ae, type: 2}
+  - {fileID: 11400000, guid: 47e82ba0446248549a30c4551303257a, type: 2}
+  - {fileID: 11400000, guid: 368e24577d232b14ba77110ff0401c7e, type: 2}
+  - {fileID: 11400000, guid: 041f794bbf820694b98d462739cf004d, type: 2}
+  - {fileID: 11400000, guid: db1bc1a6e78f65a49b398230d22920b2, type: 2}

@@ -158,7 +158,8 @@ public class TowerEquipPanel : MonoBehaviour
             }
 
             var go = Instantiate(panelPrefab, towerListContainer);
-
+            // 🔤 đổi tên instance theo yêu cầu
+            go.name = BuildPanelName(tower, tower.rarity, panelPrefab);
             // 2) LUÔN tìm child 'TowerImage' để gán sprite
             var imgTr = FindChildIgnoreCase(go.transform, towerImageChildName);
             var img = imgTr ? imgTr.GetComponent<Image>() : null;
@@ -399,4 +400,16 @@ public class TowerEquipPanel : MonoBehaviour
         }
         return null;
     }
+    // === thêm helper ở cuối class (trước dấu ngoặc cuối) ===
+    private static string BuildPanelName(TowerData tower, Rarity rarity, GameObject prefab)
+    {
+        // Tên hiển thị: ưu tiên displayName, fallback towerId, cuối cùng là "Tower"
+        string baseName = !string.IsNullOrWhiteSpace(tower.displayName) ? tower.displayName
+                         : (!string.IsNullOrWhiteSpace(tower.towerId) ? tower.towerId : "Tower");
+
+        // Tên rarity panel: theo yêu cầu "panelrarity"
+        // Ví dụ: "Cactus_Epic_panelrarity"
+        return $"{baseName}_{rarity}_panelrarity";
+    }
+
 }

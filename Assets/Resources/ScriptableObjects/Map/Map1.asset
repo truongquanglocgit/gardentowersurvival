@@ -12,10 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6abd16be88f1348449e1de3ac105b9bd, type: 3}
   m_Name: Map1
   m_EditorClassIdentifier: Assembly-CSharp::MapData
-  mapName: Map1
+  mapId: Map11
+  orderIndex: 1
+  mapName: Map 1 - 1
   previewImage: {fileID: 21300000, guid: 7a4e98f6f1249dc4a8a0ca791d6918eb, type: 3}
   sceneToLoad: Map1
-  waterReward: 1000
+  waterReward: 100
   plantRewardList:
   - t4
   waveList:
