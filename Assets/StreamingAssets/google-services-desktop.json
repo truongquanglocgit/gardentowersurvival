@@ -1,28 +1,26 @@
 {
   "project_info": {
-    "project_number": "777608482679",
-    "project_id": "ios-garden-defense-fun",
-    "storage_bucket": "ios-garden-defense-fun.firebasestorage.app"
+    "project_number": "1042716565337",
+    "project_id": "and-melon-escape-fun",
+    "storage_bucket": "and-melon-escape-fun.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:777608482679:ios:75256e8cba05e8c9d4db72",
+        "mobilesdk_app_id": "1:1042716565337:android:fe9414fe64a27646d5b648",
         "android_client_info": {
-          "package_name": "com.defenders.garden2025"
+          "package_name": "com.lin.gang.escape.prison.fun2025"
         }
       },
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBAG0kFAj2C-ou5pXb6kWUh9VNA-nrh5l8"
+          "current_key": "AIzaSyB3SN7GlG5hHPCFWBQKDJ-UpeUVcWh71ZU"
         }
       ],
       "services": {
-        "analytics_service": {
-          "status": 0
-        },
         "appinvite_service": {
-          "status": 1
+          "other_platform_oauth_client": []
         }
       }
     }

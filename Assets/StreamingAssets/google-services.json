@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1042716565337",
+    "project_id": "and-melon-escape-fun",
+    "storage_bucket": "and-melon-escape-fun.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1042716565337:android:fe9414fe64a27646d5b648",
+        "android_client_info": {
+          "package_name": "com.lin.gang.escape.prison.fun2025"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3SN7GlG5hHPCFWBQKDJ-UpeUVcWh71ZU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
