@@ -46,9 +46,17 @@ public class InGameSettingPanel : MonoBehaviour
     {
         // Trước khi rời scene: chắc chắn trả pause
         if (gameObject.activeSelf) gameObject.SetActive(false);
+        Time.timeScale = 1f;
+#if ON_ADS
 
-        Time.timeScale = 1f;                  // phòng hờ
+
+        // phòng hờ
         GameResetter.ResetBeforeExitToMenu(); // như cũ
         LoaderBridge.LoadWithLoadingScreen("MainMenu", "Loading");
+        MAXUtil.Instance.ShowInterAd(FirebaseEventMKTEnum.popup_back_mainmenu.ToString());
+#else
+        gameObject.SetActive(false);
+#endif
+        
     }
 }

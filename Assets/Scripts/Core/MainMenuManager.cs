@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using System.Linq;
-using Unity.VisualScripting;
 
 public class MainMenuManager : MonoBehaviour
 {
@@ -68,7 +67,7 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] Color voidColor = new Color32(80, 220, 220, 255);
     void Start()
     {
-        
+
         // KHÔNG gọi BuildPreviewStage ở đây nữa
         if (upMapButton) upMapButton.onClick.AddListener(() => ChangeMap(1));
         if (downMapButton) downMapButton.onClick.AddListener(() => ChangeMap(-1));
@@ -77,7 +76,7 @@ public class MainMenuManager : MonoBehaviour
         LoadLevel();
 
     }
-    
+
     void Awake()
     {
         RewardPanel.SetActive(false);
@@ -88,7 +87,7 @@ public class MainMenuManager : MonoBehaviour
     void LoadLevel()
     {
         if (levelText) { levelText.text = PlayerDataManager.Instance.PlayerCurrentLevel().ToString(); }
-        
+
         getAdsCount();
         LoadXPSlider();
     }
@@ -96,7 +95,7 @@ public class MainMenuManager : MonoBehaviour
     {
 
         var (current, total) = PlayerDataManager.Instance.GetLevelXpProgress();
-        Debug.Log(current + "  "+total);
+        Debug.Log(current + "  " + total);
         XPSlider.maxValue = total;
         XPSlider.minValue = 0;
         XPSlider.value = current;
@@ -114,17 +113,41 @@ public class MainMenuManager : MonoBehaviour
                 _cam == null) && safety < 300)
         {
             safety++;
-            yield return null; // đợi frame tiếp theo
+            yield return null;
         }
-        
+
+        // Sắp xếp lại map nếu cần
         SortMapsIfNeeded();
+
+        // ✅ Chọn map cao nhất đã unlock làm mặc định
+        currentMapIndex = GetHighestUnlockedIndexSafe();
+
+        // Cập nhật UI + lock state theo map mới chọn
         UpdateMapUI();
         ApplyLockUI();
     }
+
     public void addAdsCount()
     {
-        PlayerDataManager.Instance.AddAdsCount();
-        getAdsCount();
+#if ON_ADS
+        MAXUtil.Instance.ShowRewardAd(FirebaseEventMKTEnum.popup_watchAdsDirect.ToString(), (placement, adUnit, adInfo, countryCodes) =>
+        {
+            if (adUnit == null && adInfo == null && countryCodes == null)
+            {
+                //GameManager.Instance.NoticeNoAds.gameObject.SetActive(true);
+            }
+            else
+            {
+                FirebaseUtil.Instance.LogEventWatchAds(FirebaseEventMKTEnum.watchads);
+                PlayerDataManager.Instance.AddAdsCount();
+                getAdsCount();
+            }
+        });
+#else
+                PlayerDataManager.Instance.AddAdsCount();
+                getAdsCount();
+#endif
+
     }
     public void getAdsCount()
     {
@@ -136,14 +159,14 @@ public class MainMenuManager : MonoBehaviour
             PlayerDataManager.Instance.ResetAdsCount(20);
             TotalAdsCount.text = "0";
             grandReward();
-            
-            
+
+
         }
-        
+
     }
     public void grandReward()
     {
-        
+
         var pd = PlayerDataManager.Instance.playerData;
 
         if (!pd.unlockedTowerIds.Contains(freePlant.towerId))
@@ -174,10 +197,10 @@ public class MainMenuManager : MonoBehaviour
             {
                 Debug.LogError("❌ Không tìm thấy child 'RewardImage' trong RewardPanel!");
             }
-            
+
             // ✅ Bật RewardPanel lên
             RewardPanel.SetActive(true);
-            
+
         }
     }
     public void checkOwned()
@@ -185,7 +208,7 @@ public class MainMenuManager : MonoBehaviour
         var pd = PlayerDataManager.Instance.playerData;
 
         if (pd.unlockedTowerIds.Contains(freePlant.towerId))
-        { 
+        {
             OwnedPanel.SetActive(true);
         }
     }
@@ -389,7 +412,7 @@ public class MainMenuManager : MonoBehaviour
         return b;
     }
 
-   
+
 
     void CleanupPreviewInstance()
     {

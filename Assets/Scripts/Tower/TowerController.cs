@@ -1,4 +1,4 @@
-﻿ using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -20,36 +20,36 @@ public class TowerController : MonoBehaviour, IUpgradableTower
     public bool skipUndergroundEnemies = true;
     // ====================== SFX ROUTING (AudioSource) ======================
     [Header("SFX Routing (via AudioSource)")]
-[SerializeField] private AudioSource meleeSFXSource;   // 3D source cho melee hit
-[SerializeField] private AudioSource laserSFXSource;   // 3D source cho laser tick
-// Gợi ý: gán Output = SFX mixer group trong Inspector để control volume chung
-// === Upgrade SFX ===
-[Header("Upgrade SFX")]
-[SerializeField] private AudioClip upgradeSFX;
-[SerializeField, Range(0f, 1f)] private float upgradeSFXVolume = 0.9f;
-[SerializeField] private AudioSource upgradeSFXSource; // route qua mixer SFX                                       // ====================== LASER & MELEE FX/SOUND ======================
-[Header("Laser Tick FX / SFX")]
-[SerializeField] private GameObject laserMuzzleVFX;      // VFX xuất phát ở firePoint
-[SerializeField] private GameObject laserImpactVFX;      // VFX tại mục tiêu mỗi tick
-[SerializeField] private float laserVFXLifetime = 0.8f;  // tự hủy sau X giây
-[SerializeField] private AudioClip laserTickSFX;         // âm tick (bắn trúng)
-[SerializeField] private float laserSFXVolume = 0.8f;
-[Header("Laser Visual")]
-[SerializeField] private float laserStartWidth = 0.05f;
-[SerializeField] private float laserEndWidth = 0.05f;
-[Header("Melee Hit SFX")]
-[SerializeField] private AudioClip meleeHitSFX;          // âm khi vung trúng 1 mục tiêu
-[SerializeField] private float meleeSFXVolume = 0.9f;
-// ======= BULLET POOL (round-robin) =======
-[Header("Multi Bullet Pool (optional)")]
-[SerializeField] private bool useMultiBulletPool = false;     // BẬT: dùng luân phiên nhiều viên
-[SerializeField] private List<GameObject> bulletPool = new List<GameObject>();
-[SerializeField] private bool autoCollectFromChildren = true; // tự gom các child làm pool
+    [SerializeField] private AudioSource meleeSFXSource;   // 3D source cho melee hit
+    [SerializeField] private AudioSource laserSFXSource;   // 3D source cho laser tick
+                                                           // Gợi ý: gán Output = SFX mixer group trong Inspector để control volume chung
+                                                           // === Upgrade SFX ===
+    [Header("Upgrade SFX")]
+    [SerializeField] private AudioClip upgradeSFX;
+    [SerializeField, Range(0f, 1f)] private float upgradeSFXVolume = 0.9f;
+    [SerializeField] private AudioSource upgradeSFXSource; // route qua mixer SFX                                       // ====================== LASER & MELEE FX/SOUND ======================
+    [Header("Laser Tick FX / SFX")]
+    [SerializeField] private GameObject laserMuzzleVFX;      // VFX xuất phát ở firePoint
+    [SerializeField] private GameObject laserImpactVFX;      // VFX tại mục tiêu mỗi tick
+    [SerializeField] private float laserVFXLifetime = 0.8f;  // tự hủy sau X giây
+    [SerializeField] private AudioClip laserTickSFX;         // âm tick (bắn trúng)
+    [SerializeField] private float laserSFXVolume = 0.8f;
+    [Header("Laser Visual")]
+    [SerializeField] private float laserStartWidth = 0.05f;
+    [SerializeField] private float laserEndWidth = 0.05f;
+    [Header("Melee Hit SFX")]
+    [SerializeField] private AudioClip meleeHitSFX;          // âm khi vung trúng 1 mục tiêu
+    [SerializeField] private float meleeSFXVolume = 0.9f;
+    // ======= BULLET POOL (round-robin) =======
+    [Header("Multi Bullet Pool (optional)")]
+    [SerializeField] private bool useMultiBulletPool = false;     // BẬT: dùng luân phiên nhiều viên
+    [SerializeField] private List<GameObject> bulletPool = new List<GameObject>();
+    [SerializeField] private bool autoCollectFromChildren = true; // tự gom các child làm pool
     private int _poolIndex = 0;
 
 
-// ====================== CHỌN KIỂU TẤN CÔNG ======================
-[Header("Attack Mode")]
+    // ====================== CHỌN KIỂU TẤN CÔNG ======================
+    [Header("Attack Mode")]
     public bool isMelee = false;
     [Header("Melee")]
     public LayerMask enemyMask = ~0;          // Nên set trong Inspector chỉ layer Enemy
@@ -1031,7 +1031,7 @@ public class TowerController : MonoBehaviour, IUpgradableTower
                         ec = c.GetComponentInParent<EnemyController>() ?? c.GetComponent<EnemyController>();
 
                     if (ec != null && IsTargetable(ec))
-    _uniqueVictims.Add(ec);
+                        _uniqueVictims.Add(ec);
                 }
             }
 

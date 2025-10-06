@@ -4,8 +4,10 @@ using TMPro;
 public class CurrencyManager : MonoBehaviour
 {
     public static CurrencyManager Instance;
-    public TextMeshProUGUI seedText;
-    public int seedAmount; // số lượng seed hiện có
+    public TextMeshProUGUI waterText;
+    public TextMeshProUGUI rainbowWaterText;
+    public int waterAmount;
+    public int rainbowWaterAmount;
 
     void Awake()
     {
@@ -14,7 +16,6 @@ public class CurrencyManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-        SeedDisplay();
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -22,68 +23,90 @@ public class CurrencyManager : MonoBehaviour
     void Start()
     {
         // Load dữ liệu player
-        seedAmount = PlayerDataManager.Instance.playerData.seedAmount;
-        Debug.Log("Seed Loaded: " + seedAmount);
+        waterAmount = PlayerDataManager.Instance.playerData.waterAmount;
+        rainbowWaterAmount = PlayerDataManager.Instance.playerData.rainbowWaterAmount;
+        Debug.Log("Water Loaded: " + waterAmount);
+        Debug.Log("Rainbow Loaded: " + rainbowWaterAmount);
 
-        // Tìm TMP có tag "WaterText" nếu chưa gán sẵn
-        if (seedText == null)
+        // Tìm UI theo tag nếu chưa gán
+        if (waterText == null)
         {
-            GameObject taggedObj = GameObject.FindGameObjectWithTag("WaterText");
-            if (taggedObj != null)
-            {
-                seedText = taggedObj.GetComponent<TextMeshProUGUI>();
-            }
+            var go = GameObject.FindGameObjectWithTag("WaterText");
+            if (go) waterText = go.GetComponent<TextMeshProUGUI>();
+        }
+        if (rainbowWaterText == null)
+        {
+            // ⚠️ Nên tạo tag riêng cho Rainbow, ví dụ "RainbowWaterText"
+            var go = GameObject.FindGameObjectWithTag("RainbowWaterText");
+            if (go) rainbowWaterText = go.GetComponent<TextMeshProUGUI>();
         }
 
-        SeedDisplay();
+        RefreshDisplays();
     }
 
-    void OnEnable()
-    {
-        // Đăng ký sự kiện khi đổi scene để tự tìm lại UI
-        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
-    }
-
-    void OnDisable()
-    {
-        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
+    void OnEnable() => UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+    void OnDisable() => UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
 
     private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
     {
-        // Khi load scene mới, tìm lại WaterText
-        GameObject taggedObj = GameObject.FindGameObjectWithTag("WaterText");
-        if (taggedObj != null)
+        if (waterText == null)
         {
-            seedText = taggedObj.GetComponent<TextMeshProUGUI>();
-            SeedDisplay();
+            var go = GameObject.FindGameObjectWithTag("WaterText");
+            if (go) waterText = go.GetComponent<TextMeshProUGUI>();
         }
-    }
-
-    public void SeedDisplay()
-    {
-        if (seedText != null)
-            seedText.text = $"{seedAmount}";
-    }
-
-    public bool TrySpendSeed(int amount)
-    {
-        if (seedAmount >= amount)
+        if (rainbowWaterText == null)
         {
-            seedAmount -= amount;
-            PlayerDataManager.Instance.playerData.seedAmount = seedAmount;
+            var go = GameObject.FindGameObjectWithTag("RainbowWaterText");
+            if (go) rainbowWaterText = go.GetComponent<TextMeshProUGUI>();
+        }
+        RefreshDisplays();
+    }
+
+    private void RefreshDisplays()
+    {
+        if (waterText) waterText.text = $"{waterAmount}";
+        if (rainbowWaterText) rainbowWaterText.text = $"{rainbowWaterAmount}";
+    }
+
+    public bool TrySpendWater(int amount)
+    {
+        if (waterAmount >= amount)
+        {
+            waterAmount -= amount;
+            PlayerDataManager.Instance.playerData.waterAmount = waterAmount;
             PlayerDataManager.Instance.SavePlayerData();
-            SeedDisplay();
+            RefreshDisplays();
             return true;
         }
         return false;
     }
-
-    public void AddSeed(int amount)
+    public bool TrySpendRainbowWater(int amount)
     {
-        seedAmount += amount;
-        PlayerDataManager.Instance.playerData.seedAmount = seedAmount;
+        if (rainbowWaterAmount >= amount)
+        {
+            rainbowWaterAmount -= amount;
+            PlayerDataManager.Instance.playerData.rainbowWaterAmount = rainbowWaterAmount;
+            PlayerDataManager.Instance.SavePlayerData();
+            RefreshDisplays();
+            return true;
+        }
+        return false;
+    }
+    public void AddWater(int amount)
+    {
+        if (amount <= 0) return;
+        waterAmount += amount;
+        PlayerDataManager.Instance.playerData.waterAmount = waterAmount;
         PlayerDataManager.Instance.SavePlayerData();
-        SeedDisplay();
+        RefreshDisplays();
+    }
+
+    public void AddRainbowWater(int amount)
+    {
+        if (amount <= 0) return;
+        rainbowWaterAmount += amount; // ✅ FIX: cộng đúng biến rainbow
+        PlayerDataManager.Instance.playerData.rainbowWaterAmount = rainbowWaterAmount; // ✅ FIX: gán đúng
+        PlayerDataManager.Instance.SavePlayerData();
+        RefreshDisplays();
     }
 }

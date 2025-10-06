@@ -291,207 +291,6 @@ public class FirebaseUtil : MMPersistentSingleton<FirebaseUtil>
         }
     }
 
-    public int QuantityAI
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.QuantityAI;
-            return 5;
-        }
-    }
-
-    public float TimeToClosePopupTele
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.TimeToClosePopupTele;
-            return 3;
-        }
-    }
-
-    public float TimeToShowPopupJetpack
-    {
-        get
-        {
-            if(IsAdConfigHaveData)
-                return AdConfigData.TimeToShowPopupJetpack;
-            return 1;
-        }
-    }
-
-    public bool IsMapConfig
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.IsMapConfig;
-            return false;
-        }
-    }
-
-    public bool ABTest
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.ABTest;
-            return false;
-        }
-    }
-
-    public bool Test2
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.Test2;
-            return true;
-        }
-    }
-
-    public bool IsUIHack
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.IsUIHack;
-            return false;
-        }
-    }
-
-    public int NumNoAds
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.NumNoAds;
-            return 5;
-        }
-        
-    }
-
-    public bool TestIsUnLockSkin
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.TestIsUnLockSkin;
-            return false;
-        }
-    }
-
-    public bool TestIslimitSkin
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.TestIslimitSkin;
-            return false;
-        }
-    }
-
-    public bool IsOpenLevel0
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.IsOpenLevel0;
-            return false;
-        }
-    }
-
-    public int MelonShow
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.MelonShow;
-            return 99;
-        }
-    }
-    public int SchoolShow
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.SchoolShow;
-            return 99;
-        }
-    }
-    public int SquidShow
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.SquidShow;
-            return 99;
-        }
-    }
-    public int FamilyShow
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.FamilyShow;
-            return 99;
-        }
-    }
-
-    public string ListBtn
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.ListBtn;
-            return "1,2,3,4,5,6";
-        }
-    }
-
-    public float SpeedSpawn
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.SpeedSpawn;
-            return 0.8f;
-        }
-    }
-
-    public bool HideSkin
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-                return AdConfigData.HideSkin;
-            return JunEx.PlayerPrefsExtension.GetBool("HideSkin", false); ;
-        }
-    }
-
-    public bool HideHeart
-    {
-        get
-        {
-            if (IsAdConfigHaveData)
-            {
-                JunEx.PlayerPrefsExtension.SetBool("HideHeart", AdConfigData.HideHeart);
-                return AdConfigData.HideHeart;
-            }
-            return JunEx.PlayerPrefsExtension.GetBool("HideHeart", false);
-        }
-    }
-
-    /*    public bool BossConfig()
-{
-get
-{
-if (IsAdConfigHaveData)
-return AdConfigData.BossConfig;
-return false;
-}
-}*/
-
     #endregion
 
     #region Crashlytics
@@ -588,13 +387,13 @@ return false;
         parametersLevel[2] = new Parameter(nameof(FirebaseParamMKTEnum.time_played), time_played_Param);
 
 #if !UNITY_EDITOR
-        FirebaseAnalytics.LogEvent(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString(), parametersLevel);
+        FirebaseAnalytics.LogEvent(eventName.ToString(), parametersLevel);
 #endif
 #if UNITY_EDITOR
-        Debug.Log(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString() % JunEx.Colorize.Gold + " - " + "level: " % JunEx.Colorize.Green + level_Param);
+        Debug.Log(eventName.ToString()+ " - " + "level: "+ level_Param);
         //Debug.Log(eventName.ToString() % JunEx.Colorize.Gold + " - " + "level_count_play: " % JunEx.Colorize.Green + level_count_play_Param);
         //Debug.Log(eventName.ToString() % JunEx.Colorize.Gold + " - " + "time_played: " % JunEx.Colorize.Green + time_played_Param);
-        Debug.Log("--------------------------------------" % JunEx.Colorize.Yellow);
+        Debug.Log("--------------------------------------");
 #endif
     }
 
@@ -605,28 +404,44 @@ return false;
             new Parameter("",""),
         };
 #if !UNITY_EDITOR
-        FirebaseAnalytics.LogEvent(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString(), parameters);
+        FirebaseAnalytics.LogEvent(eventName.ToString(), parameters);
 #endif
     }
 
-    public void LogEventBuySkin(FirebaseEventMKTEnum eventName, int id)
+    public void LogEventWatchAds(FirebaseEventMKTEnum eventName)
     {
-        string param = $"buy_{id}";
+        string param = $"watch ads";
 
         Parameter[] parameters =
         {
-            new Parameter(FirebaseParamMKTEnum.buy.ToString(), param),
+            new Parameter(FirebaseParamMKTEnum.watchads.ToString(), param),
         };
 
 #if !UNITY_EDITOR
-        FirebaseAnalytics.LogEvent(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString(), parameters);
+        FirebaseAnalytics.LogEvent(eventName.ToString(), parameters);
 #endif
 #if UNITY_EDITOR
-        Debug.Log(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString() % JunEx.Colorize.Gold + " - " + "skin: " % JunEx.Colorize.Green + param);
-        Debug.Log("--------------------------------------" % JunEx.Colorize.Yellow);
+        Debug.Log(eventName.ToString() + " - " + "skin: " + param);
+        Debug.Log("--------------------------------------");
 #endif
     }
+    public void LogEventEndWaveAds(FirebaseEventMKTEnum eventName)
+    {
+        string param = $" end wave reward ";
 
+        Parameter[] parameters =
+        {
+            new Parameter(FirebaseParamMKTEnum.watchads.ToString(), param),
+        };
+
+#if !UNITY_EDITOR
+        FirebaseAnalytics.LogEvent(eventName.ToString(), parameters);
+#endif
+#if UNITY_EDITOR
+        Debug.Log(eventName.ToString() + " - "  + param);
+        Debug.Log("--------------------------------------");
+#endif
+    }
     public void LogEventChooseMap(FirebaseEventMKTEnum eventName, string nameMap)
     {
         Parameter[] parameters =
@@ -635,7 +450,7 @@ return false;
         };
 
 #if !UNITY_EDITOR
-        FirebaseAnalytics.LogEvent(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString(), parameters);
+        FirebaseAnalytics.LogEvent(eventName.ToString(), parameters);
 #endif
     }
 
@@ -649,11 +464,11 @@ return false;
         };
 
 #if !UNITY_EDITOR
-        FirebaseAnalytics.LogEvent(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString(), parameters);
+        FirebaseAnalytics.LogEvent(eventName.ToString(), parameters);
 #endif
 #if UNITY_EDITOR
-        Debug.Log(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString() % JunEx.Colorize.Gold + " - " + "skin: " % JunEx.Colorize.Green + param);
-        Debug.Log("--------------------------------------" % JunEx.Colorize.Yellow);
+        Debug.Log(eventName.ToString()+ " - " + "skin: "+ param);
+        Debug.Log("--------------------------------------");
 #endif
     }
 
@@ -667,11 +482,11 @@ return false;
         };
 
 #if !UNITY_EDITOR
-        FirebaseAnalytics.LogEvent(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString(), parameters);
+        FirebaseAnalytics.LogEvent(eventName.ToString(), parameters);
 #endif
 #if UNITY_EDITOR
-        Debug.Log(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString() % JunEx.Colorize.Gold + " - " + "skin: " % JunEx.Colorize.Green + param);
-        Debug.Log("--------------------------------------" % JunEx.Colorize.Yellow);
+        Debug.Log(eventName.ToString() + " - " + "skin: "+ param);
+        Debug.Log("--------------------------------------");
 #endif
     }
 
@@ -679,22 +494,21 @@ return false;
     public void LogEventAdAction(FirebaseEventMKTEnum eventName, string placement)
     {
         string placement_param = placement;
-        string placement_lv_param = $"{placement}_lv{Pref.CheckPoint}";
+        string placement_lv_param = $"{placement}_lv{0}"; // 0 : check point 0
 
         parametersAdAction[0] = new Parameter(nameof(FirebaseParamMKTEnum.placement), placement_param);
         parametersAdAction[1] = new Parameter(nameof(FirebaseParamMKTEnum.placement_lv), placement_lv_param);
 
 #if !UNITY_EDITOR
         FirebaseAnalytics.LogEvent(eventName.ToString(), parametersAdAction);
-        FirebaseAnalytics.LogEvent(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString(), parametersAdAction);
 #endif
 #if UNITY_EDITOR
-        Debug.Log(eventName.ToString() % JunEx.Colorize.Green + "-" + "placement : " + placement);
-        Debug.Log(eventName.ToString() % JunEx.Colorize.Green + "-" + "placement_lv : " + placement_lv_param);
+        Debug.Log(eventName.ToString() + "-" + "placement : " + placement);
+        Debug.Log(eventName.ToString() + "-" + "placement_lv : " + placement_lv_param);
 
-        Debug.Log(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString() % JunEx.Colorize.Green + "-" + "placement : " + placement);
-        Debug.Log(SplashSceneManager.Instance.GetCurrentSceneName() + "_" + eventName.ToString() % JunEx.Colorize.Green + "-" + "placement_lv : " + placement_lv_param);
-        Debug.Log("--------------------------------------" % JunEx.Colorize.Yellow);
+        Debug.Log(eventName.ToString() + "-" + "placement : " + placement);
+        Debug.Log(eventName.ToString() + "-" + "placement_lv : " + placement_lv_param);
+        Debug.Log("--------------------------------------");
 #endif
     }
     #endregion

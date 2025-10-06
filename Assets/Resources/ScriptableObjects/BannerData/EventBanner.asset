@@ -33,3 +33,6 @@ MonoBehaviour:
   - rarity: 5
     weight: 0.1
     towerGroup: {fileID: 11400000, guid: a7634c4d8c7b182498ede189de69af05, type: 2}
+  - rarity: 5
+    weight: 0.02
+    towerGroup: {fileID: 11400000, guid: 8963c02adef12dc40b866f335447f11a, type: 2}

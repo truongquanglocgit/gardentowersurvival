@@ -1,0 +1,31 @@
+{
+  "project_info": {
+    "project_number": "777608482679",
+    "project_id": "ios-garden-defense-fun",
+    "storage_bucket": "ios-garden-defense-fun.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:777608482679:ios:75256e8cba05e8c9d4db72",
+        "android_client_info": {
+          "package_name": "com.defenders.garden2025"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAG0kFAj2C-ou5pXb6kWUh9VNA-nrh5l8"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 0
+        },
+        "appinvite_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

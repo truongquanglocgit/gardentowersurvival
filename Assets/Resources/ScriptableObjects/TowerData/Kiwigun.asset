@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   towerId: t10
   displayName: Kiwi Gun
-  icon: {fileID: 21300000, guid: de1d3164ba9b4c548b337c93904dba9a, type: 3}
+  icon: {fileID: 21300000, guid: e19f0f6c3edda684c9976878a88d2815, type: 3}
   rarity: 3
   cost: 800
   range: 5

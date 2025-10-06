@@ -29,14 +29,21 @@ public class GachaResultPanel : MonoBehaviour
 
     void Start()
     {
-        if (closeButton != null)
-        {
-            closeButton.onClick.AddListener(() => gameObject.SetActive(false));
-            TutorialManager.EmitSignalGlobal("DoneRoll");
-        }
+        
             
     }
+    public void Close()
+    {
+#if ON_ADS
+        gameObject.SetActive(false);
+        TutorialManager.EmitSignalGlobal("DoneRoll");
+        MAXUtil.Instance.ShowInterAd(FirebaseEventMKTEnum.popup_close_gacha.ToString());
+#else
+        gameObject.SetActive(false);
+#endif
+        
 
+    }
     public void ShowResults(List<TowerData> towers)
     {
         if (resultContainer == null)

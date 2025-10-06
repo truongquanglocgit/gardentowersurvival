@@ -260,7 +260,7 @@ public class TowerUpgradeUI : MonoBehaviour
             }
 
             // Đúng yêu cầu: sau Upgrade đóng luôn UI
-            Hide();
+            Refresh();
             // Nếu muốn giữ UI mở để xem chỉ số mới, thì đổi Hide() thành Refresh();
         }
     }

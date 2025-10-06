@@ -129,15 +129,41 @@ public class RewardManager : MonoBehaviour
     /// <summary>Yes = nhận reward → áp dụng pending rồi đóng panel.</summary>
     public void OnClickYes()
     {
-        ApplyPendingReward();
+#if ON_ADS
+        MAXUtil.Instance.ShowRewardAd(FirebaseEventMKTEnum.popup_yes_endwave_reward.ToString(), (placement, adUnit, adInfo, countryCodes) =>
+        {
+            if (adUnit == null && adInfo == null && countryCodes == null)
+            {
+                //GameManager.Instance.NoticeNoAds.gameObject.SetActive(true);
+            }
+            else
+            {
+                FirebaseUtil.Instance.LogEventEndWaveAds(FirebaseEventMKTEnum.popup_yes_endwave_reward);
+                ApplyPendingReward();
+            }
+        });
+#else
+                PlayerDataManager.Instance.AddAdsCount();
+                
+#endif
+        
         ClosePanel();
     }
 
     /// <summary>No = từ chối → không nhận gì, chỉ đóng panel.</summary>
     public void OnClickNo()
     {
+#if ON_ADS
+
+
+
         ClearPending();
         ClosePanel();
+        MAXUtil.Instance.ShowInterAd(FirebaseEventMKTEnum.popup_no_endwave_reward.ToString());
+#else
+        gameObject.SetActive(false);
+#endif
+        
     }
 
     // =========================================================
@@ -319,7 +345,7 @@ public class RewardManager : MonoBehaviour
     private void GrantWater(int amount)
     {
         if (CurrencyManager.Instance != null)
-            CurrencyManager.Instance.AddSeed(amount);
+            CurrencyManager.Instance.AddWater(amount);
         else if (GameController.Instance != null)
             GameController.Instance.AddSeed(amount);
     }

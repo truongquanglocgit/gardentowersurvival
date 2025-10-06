@@ -4,7 +4,8 @@ using UnityEngine;
 [System.Serializable]
 public class PlayerData
 {
-    public int seedAmount;
+    public int waterAmount;
+    public int rainbowWaterAmount;
 
     // Towers
     public List<string> unlockedTowerIds = new();
@@ -20,4 +21,6 @@ public class PlayerData
     public int playerLevel = 1;     // Bắt đầu từ Level 1
     public int currentXp = 0;       // XP hiện tại
     public int totalAds;
+
+    public long nextFreeGachaUnix = 0;
 }

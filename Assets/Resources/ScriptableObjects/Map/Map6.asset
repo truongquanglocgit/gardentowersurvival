@@ -17,7 +17,9 @@ MonoBehaviour:
   mapName: Map 2 - 3
   previewImage: {fileID: 21300000, guid: cf1551993151f534b94678d2ff0e8c6b, type: 3}
   sceneToLoad: Map6
-  waterReward: 1000
+  waterReward: 300
+  rainbowWaterReward: 5
+  xp: 1500
   plantRewardList: []
   waveList:
   - {fileID: 11400000, guid: 02883ec9594203541bedf5cb0390c907, type: 2}
@@ -32,7 +34,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a62b29139ebddab479cfa32f5d985ce6, type: 2}
   - {fileID: 11400000, guid: 5f83cba1789cdd64aaaed18d8b0cddd9, type: 2}
   - {fileID: 11400000, guid: d40fa2ae31c3d334d98e9cac017d5141, type: 2}
-  previewPrefab: {fileID: 587365190639914207, guid: 025cd0fd036dca24ea953bb35c0eec92, type: 3}
+  previewPrefab: {fileID: 1358586398666099514, guid: 4c6467b927910854d9a4915ceece861e, type: 3}
   previewPosition: {x: 0, y: 0, z: 0}
   previewEuler: {x: 0, y: 30, z: 0}
   previewScale: 1
+  waterRewardIcon: {fileID: 0}
+  rainbowWaterRewardIcon: {fileID: 0}
+  xpRewardIcon: {fileID: 0}

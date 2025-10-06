@@ -71,6 +71,28 @@ public static class WaveRuntime
 /// </summary>
 public class WaveManager : MonoBehaviour
 {
+    // ==== THÊM CÁC FIELD SAU TRONG CLASS WaveManager ====
+    [Header("Reward UI (List Prefab)")]
+    [SerializeField] private Transform rewardsContainer;     // nơi sẽ chứa các item (Grid/Vertical Layout)
+    [SerializeField] private RewardItemUI rewardItemPrefab; // prefab 1 item (Image + TMP_Text)
+
+    [Header("Reward Default Icons (fallback)")]
+    [SerializeField] private Sprite defaultWaterIcon;
+    [SerializeField] private Sprite defaultRainbowWaterIcon;
+    [SerializeField] private Sprite defaultXpIcon;
+
+    [Header("All Towers DB (for plant icons)")]
+    [SerializeField] private AllTowerDatabase allTowerDatabase;
+
+    // Cache map towerId -> TowerData để lookup nhanh icon & name
+    private Dictionary<string, TowerData> _towerIdMap;
+
+    // Format hiển thị
+    [Header("Reward Text Formats")]
+    [SerializeField] private string waterFormat = "Water x {0}";
+    [SerializeField] private string rainbowWaterFormat = "Rainbow Water x {0}";
+    [SerializeField] private string xpFormat = "XP +{0}";
+    [SerializeField] private string plantUnlockFormat = "{0} (Unlocked)";
     [Header("Shared Death VFX (Global)")]
     [Tooltip("Prefab VFX chết dùng CHUNG cho tất cả enemy trong level.")]
     public ParticleSystem sharedDeathVFXPrefab;
@@ -242,7 +264,17 @@ public class WaveManager : MonoBehaviour
         EnsureUISfxSource(); // 🔊 chuẩn bị nguồn SFX UI
         if (WaveRuntime.LogEnabled)
             Debug.Log($"[Wave] Awake. waves={waveList.Count}, enemies={enemyDataList.Count}");
-
+        if (allTowerDatabase != null && allTowerDatabase.allTowers != null)
+        {
+            _towerIdMap = allTowerDatabase.allTowers
+                .Where(t => t != null && !string.IsNullOrEmpty(t.towerId))
+                .GroupBy(t => t.towerId)
+                .ToDictionary(g => g.Key, g => g.First());
+        }
+        else
+        {
+            _towerIdMap = new Dictionary<string, TowerData>();
+        }
     }
 
     void OnEnable()
@@ -798,24 +830,82 @@ public class WaveManager : MonoBehaviour
         if (rewardText && GameSession.Instance != null && GameSession.Instance.currentMapData != null)
             rewardText.text = $"Water x {GameSession.Instance.currentMapData.waterReward}";
 
-        // Bật canvas (nếu có)
         if (rewardCanvas) rewardCanvas.gameObject.SetActive(true);
 
-        // Phát win SFX (UI 2D)
-        if (winSFX)
-        {
-            EnsureUISfxSource();
-            uiSfxSource.PlayOneShot(winSFX, winSFXVolume);
-        }
+        // 🔥 NEW: Build danh sách reward từ MapData
+        var map = GameSession.Instance != null ? GameSession.Instance.currentMapData : null;
+        BuildRewardListFromMap(map);
 
-        // Panel bay từ trên xuống
+        // Panel bay từ trên xuống (giữ nguyên code cũ)
         RectTransform rt = winPanelRect;
         if (!rt && rewardCanvas) rt = rewardCanvas.GetComponentInChildren<RectTransform>(true);
         if (rt) StartCoroutine(PlayPanelDrop(rt));
 
-        // Cập nhật text cuối
+        // cập nhật wave text (giữ cũ)
         if (waveCounterText) waveCounterText.text = "Allwave Clear!";
     }
+    private void BuildRewardListFromMap(MapData map)
+    {
+        if (!rewardsContainer || !rewardItemPrefab)
+        {
+            Debug.LogWarning("[Wave] Reward list UI missing: assign rewardsContainer & rewardItemPrefab in Inspector.");
+            return;
+        }
+
+        // Clear container
+        for (int i = rewardsContainer.childCount - 1; i >= 0; i--)
+            Destroy(rewardsContainer.GetChild(i).gameObject);
+
+        if (map == null) return;
+
+        // 1) Water
+        if (map.waterReward > 0)
+        {
+            var icon = map.waterRewardIcon ? map.waterRewardIcon : defaultWaterIcon;
+            AddRewardItem(icon,  map.waterReward.ToString(), RewardType.Water);
+        }
+
+        // 2) Rainbow Water
+        if (map.rainbowWaterReward > 0)
+        {
+            var icon = map.rainbowWaterRewardIcon ? map.rainbowWaterRewardIcon : defaultRainbowWaterIcon;
+            AddRewardItem(icon,  map.rainbowWaterReward.ToString(), RewardType.Rainbow);
+        }
+
+        // 3) XP
+        if (map.xp > 0f)
+        {
+            var icon = map.xpRewardIcon ? map.xpRewardIcon : defaultXpIcon;
+            AddRewardItem(icon, map.xp.ToString(), RewardType.XP);
+        }
+
+        // 4) Plants
+        if (map.plantRewardList != null)
+        {
+            foreach (var towerId in map.plantRewardList)
+            {
+                if (string.IsNullOrEmpty(towerId)) continue;
+                Sprite sp = null;
+                string displayName = towerId;
+
+                if (_towerIdMap != null && _towerIdMap.TryGetValue(towerId, out var td) && td != null)
+                {
+                    sp = td.icon ? td.icon : sp;
+                    displayName = string.IsNullOrEmpty(td.displayName) ? towerId : td.displayName;
+                }
+
+                AddRewardItem(sp, string.Format(plantUnlockFormat, displayName), RewardType.Plant);
+            }
+        }
+    }
+
+    private void AddRewardItem(Sprite icon, string text, RewardType type)
+    {
+        var ui = Instantiate(rewardItemPrefab, rewardsContainer);
+        ui.Set(icon, text, type);
+    }
+
+
     IEnumerator PlayPanelDrop(RectTransform panel)
     {
         // lấy vị trí đích hiện tại

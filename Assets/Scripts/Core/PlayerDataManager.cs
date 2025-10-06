@@ -31,7 +31,7 @@ public class PlayerDataManager : MonoBehaviour
     {
         string json = JsonUtility.ToJson(playerData, true);
         File.WriteAllText(SavePath, json);
-        //Debug.Log("💾 PlayerData saved to: " + SavePath);
+        Debug.Log("💾 PlayerData saved to: " + SavePath);
     }
 
     public void LoadPlayerData()
@@ -52,7 +52,7 @@ public class PlayerDataManager : MonoBehaviour
 
             playerData = new PlayerData
             {
-                seedAmount = 0, // hoặc tuỳ số bạn muốn
+                waterAmount = 0, // hoặc tuỳ số bạn muốn
                 unlockedTowerIds = new List<string> { "t2" },
                 equippedTowerIds = new List<string> { "t2" },
                 completedMapIds = new List<string>(), // chưa hoàn thành map nào
@@ -156,4 +156,5 @@ public class PlayerDataManager : MonoBehaviour
     {
         playerData.totalAds -= amount;
     }
+    
 }

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
   towerId: t4
   displayName: Fire Chili
-  icon: {fileID: 21300000, guid: 0896220c3001c934e89fb08344abb31f, type: 3}
+  icon: {fileID: 21300000, guid: 25ec4a3febd7c7347b8d9e30b5fe75c1, type: 3}
   rarity: 1
   cost: 400
   range: 5

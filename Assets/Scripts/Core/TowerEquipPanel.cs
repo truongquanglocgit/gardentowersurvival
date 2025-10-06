@@ -352,7 +352,17 @@ public class TowerEquipPanel : MonoBehaviour
     }
 
     // ================== Open/Close ==================
-    public void ClosePanel() => gameObject.SetActive(false);
+    public void ClosePanel()
+    {
+#if ON_ADS
+        if (gameObject.activeSelf)
+            gameObject.SetActive(false);
+        MAXUtil.Instance.ShowInterAd(FirebaseEventMKTEnum.popup_closeShop.ToString());
+#else
+        gameObject.SetActive(false);
+#endif
+       
+    }
 
     public void OpenPanel()
     {

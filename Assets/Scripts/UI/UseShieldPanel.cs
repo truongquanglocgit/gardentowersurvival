@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using DG.Tweening;
 
 public class UseShieldPanel : MonoBehaviour
 {
@@ -9,8 +10,8 @@ public class UseShieldPanel : MonoBehaviour
     [SerializeField] private bool autoCloseOnFinish = false;// Hết về 0 thì auto đóng panel
 
     [Header("Slide Settings")]
-    [Min(0.05f)] public float slideDuration = 1.0f;         // Thời gian trượt về 0
-    public AnimationCurve easeCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+    [Min(0.05f)] public float timerDuration = 10.0f;         // Thời gian trượt về 0
+    public AnimationCurve ease = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
     private Coroutine slideCo;
     private bool _pauseTaken;
@@ -20,14 +21,19 @@ public class UseShieldPanel : MonoBehaviour
     {
         if (!slider) slider = GetComponentInChildren<Slider>(true);
 
-        // Reset slider về 0 khi mở panel
-        if (slider) slider.value = 0f;
+        
 
         // Dừng thời gian
         if (!_pauseTaken)
         {
             PauseManager.PushPause();
             _pauseTaken = true;
+        }
+        if (slider)
+        {
+            slider.value = 1f; // sẽ lerp về 0
+            if (slideCo != null) StopCoroutine(slideCo);
+            slideCo = StartCoroutine(TimerRoutine());
         }
     }
 
@@ -59,10 +65,18 @@ public class UseShieldPanel : MonoBehaviour
     /// <summary>Tắt panel (resume game).</summary>
     public void ClosePanel()
     {
-        Debug.Log("Close Panel");
-        this.gameObject.SetActive(false);
-    }
+#if ON_ADS
 
+
+        
+        this.gameObject.SetActive(false);
+        MAXUtil.Instance.ShowInterAd(FirebaseEventMKTEnum.popup_back_mainmenu.ToString());
+#else
+        gameObject.SetActive(false);
+#endif
+        
+    }
+    
     /// <summary>
     /// Đặt slider tới giá trị s rồi tự động trượt ngược về 0.
     /// </summary>
@@ -73,7 +87,7 @@ public class UseShieldPanel : MonoBehaviour
         if (slideCo != null) StopCoroutine(slideCo);
 
         slider.value = Mathf.Clamp(s, slider.minValue, slider.maxValue);
-        slideCo = StartCoroutine(SlideBackRoutine());
+        slideCo = StartCoroutine(TimerRoutine());
     }
 
     /// <summary>
@@ -87,23 +101,19 @@ public class UseShieldPanel : MonoBehaviour
     }
 
     // ===== Internal =====
-    private IEnumerator SlideBackRoutine()
+    private IEnumerator TimerRoutine()
     {
-        float startValue = slider.value;
-        float elapsed = 0f;
-
-        while (elapsed < slideDuration)
+        float t = 0f;
+        while (t < timerDuration)
         {
-            elapsed += Time.unscaledDeltaTime; // dùng unscaled để chạy khi pause
-            float t = Mathf.Clamp01(elapsed / slideDuration);
-            float eased = easeCurve != null ? easeCurve.Evaluate(t) : t;
-            slider.value = Mathf.Lerp(startValue, 0f, eased);
+            t += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(t / timerDuration);
+            float eased = ease != null ? ease.Evaluate(k) : k;
+            // slider về 0
+            if (slider) slider.value = 1f - eased;
             yield return null;
         }
-
-        slider.value = 0f;
-        slideCo = null;
-
         if (autoCloseOnFinish) ClosePanel();
+        slideCo = null;
     }
 }

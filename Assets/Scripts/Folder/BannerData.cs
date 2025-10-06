@@ -21,6 +21,7 @@ public class GachaBannerData : ScriptableObject
 
     public TowerData GetRandomTower()
     {
+        Debug.Log(bannerName);
         var group = GetRandomRarityGroup();
         if (group == null || group.towerGroup == null || group.towerGroup.towerList.Count == 0)
         {

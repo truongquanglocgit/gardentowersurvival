@@ -17,11 +17,6 @@ MonoBehaviour:
     m_SerializedData: []
   m_GUID: 88dab96f3da46084a970f081463e75f0
   m_SerializeEntries:
-  - m_GUID: 563ac337a153f3841abd7f1c96b17927
-    m_Address: Assets/_ThirdParty/JMO Assets/Cartoon FX (legacy)/Materials (Mobile)/Misc/CFXM_Bubble_ABP.mat
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e8e12085089027042aeb8d0f04629527
     m_Address: Assets/Sprites/Sprite/Materials/Screenshot 2025-09-09 171717.mat
     m_ReadOnly: 0

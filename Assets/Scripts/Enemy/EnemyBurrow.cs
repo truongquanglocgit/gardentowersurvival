@@ -2,53 +2,45 @@
 using UnityEngine.AI;
 using System.Collections;
 
-/// <summary>
-/// EnemyBurrow: Cho phép một số enemy (vd: chuột chũi) chui xuống đất theo chu kỳ.
-/// - Khi bắt đầu chui: hiện icon "!" trên đầu, tắt EnemyController (không tấn công).
-/// - Tuỳ chọn: vô hiệu hoá va chạm hoặc chuyển sang layer "Underground" để tower không khóa mục tiêu.
-/// - Hạ model xuống (dịch -Y) rồi trồi lên sau duration.
-/// </summary>
 [DisallowMultipleComponent]
 public class EnemyBurrow : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("Logic chiến đấu/di chuyển của enemy sẽ bị vô hiệu hoá khi đi ngầm.")]
     public EnemyController enemyController;
-    [Tooltip("Agent để dừng lại khi đi ngầm (không bắt buộc).")]
     public NavMeshAgent agent;
-    [Tooltip("Gốc của mesh/model để hạ xuống/nhô lên (nếu null sẽ dùng transform).")]
     public Transform modelRoot;
-    [Tooltip("Điểm neo để spawn icon '!' (thường là một empty trên đầu). Nếu null, dùng transform.")]
     public Transform headAnchor;
 
+    [Tooltip("GameObject tượng trưng cục đất hiện khi enemy chui xuống.")]
+    public GameObject Dirt;
+
     [Header("Burrow Settings")]
-    [Tooltip("Bật/tắt hành vi đi ngầm.")]
     public bool canGoUnderground = true;
-    [Tooltip("Bao lâu thì bắt đầu chui (khoảng cách giữa hai lần chui).")]
     public Vector2 intervalSeconds = new Vector2(5f, 8f);
-    [Tooltip("Thời gian ở trạng thái ngầm (không bị tấn công/không tấn công).")]
     public float undergroundDuration = 2.5f;
-    [Tooltip("Thời gian tween khi hạ xuống/nhô lên.")]
     public float burrowTweenTime = 0.35f;
-    [Tooltip("Độ sâu hạ model khi chui ngầm (m).")]
     public float burrowDepth = 0.6f;
 
     [Header("Invulnerability While Underground")]
-    [Tooltip("Khi ngầm thì tắt toàn bộ Collider để tower không hit được.")]
     public bool disableCollidersWhileUnderground = true;
-    [Tooltip("Hoặc đổi sang layer này khi ngầm (để tower không target). Để rỗng nếu không dùng.")]
     public string undergroundLayerName = "Underground";
 
     [Header("FX / UI")]
-    [Tooltip("Prefab icon dấu chấm than hiện khi bắt đầu chui (tuỳ chọn).")]
     public GameObject exclamationPrefab;
-    [Tooltip("Khoảng cao hơn đầu để đặt icon '!'.")]
     public float exclamationYOffset = 0.6f;
-    [Tooltip("Ẩn icon sau bấy nhiêu giây kể từ khi hiện.")]
     public float exclamationLifetime = 1.2f;
 
+    [Min(0.01f)] public float exclamationScale = 1f;
+    public bool exclamationFixedWorldScale = true;
+
+    // 👉 NEW: cấu hình Dirt
+    [Header("Dirt (Ground FX)")]
+    [Tooltip("Đặt Dirt theo vị trí headAnchor + offset Y (nếu tắt thì giữ nguyên vị trí/parent hiện tại).")]
+    public bool dirtUseHeadAnchorPosition = true;
+    [Tooltip("Độ lệch theo trục Y tính từ headAnchor khi hiện Dirt.")]
+    public float dirtYOffset = 0.05f;
+
     [Header("Animator (optional)")]
-    [Tooltip("Animator ở child để bắn trigger khi chui/nhô (nếu có).")]
     public Animator childAnimator;
     public string burrowDownTrigger = "BurrowDown";
     public string burrowUpTrigger = "BurrowUp";
@@ -75,20 +67,20 @@ public class EnemyBurrow : MonoBehaviour
         if (string.IsNullOrEmpty(undergroundLayerName)) _origLayer = -1;
         else _origLayer = gameObject.layer;
         if (!headAnchor) headAnchor = transform;
+
+        // 👉 đảm bảo Dirt ẩn lúc start
+        if (Dirt) Dirt.SetActive(false);
     }
 
     void OnEnable()
     {
         if (canGoUnderground && _loop == null)
-        {
             _loop = StartCoroutine(BurrowLoop());
-        }
     }
 
     void OnDisable()
     {
         if (_loop != null) { StopCoroutine(_loop); _loop = null; }
-        // đảm bảo reset trạng thái nếu bị disable giữa chừng
         if (_isUnderground)
         {
             _isUnderground = false;
@@ -96,62 +88,70 @@ public class EnemyBurrow : MonoBehaviour
             RestoreController();
             TweenModelTo(_modelStartLocalPos, 0f);
         }
+        // 👉 ẩn Dirt khi bị tắt giữa chừng
+        HideDirt();
     }
 
     IEnumerator BurrowLoop()
     {
-        // chờ một nhịp nhỏ để tránh vừa spawn đã chui
         yield return new WaitForSeconds(Random.Range(0.5f, 1.25f));
 
         while (canGoUnderground && enemyController && !enemyController.IsDead)
         {
-            // đợi tới lượt
             float wait = Random.Range(intervalSeconds.x, intervalSeconds.y);
             yield return new WaitForSeconds(wait);
-
             if (!isActiveAndEnabled || enemyController.IsDead) yield break;
 
             // BẮT ĐẦU CHUI
             ShowExclamation();
             PlayAnimTrigger(burrowDownTrigger);
 
-            // dừng agent
             if (agent) { agent.isStopped = true; agent.ResetPath(); }
 
-            // tắt điều khiển (không tấn công)
-            //if (enemyController) enemyController.enabled = false;
+            // 👉 hiện Dirt ngay khi bắt đầu chìm
+            ShowDirt();
 
-            // vô hiệu hoá va chạm / đổi layer
             ApplyUndergroundCollisionAndLayer();
-
-            // hạ model
             yield return TweenYOffset(-burrowDepth, burrowTweenTime);
 
-            // ở trạng thái ngầm
             _isUnderground = true;
             yield return new WaitForSeconds(undergroundDuration);
 
             // NGÓI LÊN
             PlayAnimTrigger(burrowUpTrigger);
-
-            // nâng model về vị trí cũ
             yield return TweenYOffset(0f, burrowTweenTime);
 
-            // khôi phục va chạm/layer + bật lại controller + agent
             RestoreCollisionAndLayer();
             RestoreController();
-
             _isUnderground = false;
 
             if (agent && agent.enabled) agent.isStopped = false;
+
+            // 👉 ẩn Dirt khi đã trồi lên
+            HideDirt();
         }
     }
 
     void ShowExclamation()
     {
         if (!exclamationPrefab) return;
+
         var pos = (headAnchor ? headAnchor.position : transform.position) + Vector3.up * exclamationYOffset;
-        var go = Instantiate(exclamationPrefab, pos, Quaternion.identity, headAnchor);
+
+        var go = Instantiate(exclamationPrefab, pos, Quaternion.identity);
+        var baseScale = go.transform.localScale;
+
+        if (exclamationFixedWorldScale)
+        {
+            go.transform.localScale = baseScale * exclamationScale;
+            go.transform.SetParent(headAnchor, true);
+        }
+        else
+        {
+            go.transform.SetParent(headAnchor, false);
+            go.transform.localScale = baseScale * exclamationScale;
+        }
+
         if (exclamationLifetime > 0f) Destroy(go, exclamationLifetime);
     }
 
@@ -211,14 +211,12 @@ public class EnemyBurrow : MonoBehaviour
 
     void ApplyUndergroundCollisionAndLayer()
     {
-        // layer
         if (!string.IsNullOrEmpty(undergroundLayerName))
         {
             int layer = LayerMask.NameToLayer(undergroundLayerName);
             if (layer >= 0) SetLayerRecursively(transform, layer);
         }
 
-        // colliders
         if (disableCollidersWhileUnderground && _cols != null)
         {
             for (int i = 0; i < _cols.Length; i++) _cols[i].enabled = false;
@@ -227,13 +225,11 @@ public class EnemyBurrow : MonoBehaviour
 
     void RestoreCollisionAndLayer()
     {
-        // layer
         if (!string.IsNullOrEmpty(undergroundLayerName) && _origLayer >= 0)
         {
             SetLayerRecursively(transform, _origLayer);
         }
 
-        // colliders
         if (disableCollidersWhileUnderground && _cols != null)
         {
             for (int i = 0; i < _cols.Length; i++) _cols[i].enabled = true;
@@ -243,9 +239,7 @@ public class EnemyBurrow : MonoBehaviour
     void RestoreController()
     {
         if (enemyController && !enemyController.IsDead)
-        {
             enemyController.enabled = true;
-        }
     }
 
     static void SetLayerRecursively(Transform t, int layer)
@@ -253,5 +247,25 @@ public class EnemyBurrow : MonoBehaviour
         t.gameObject.layer = layer;
         for (int i = 0; i < t.childCount; i++)
             SetLayerRecursively(t.GetChild(i), layer);
+    }
+
+    // ===== Dirt helpers =====
+    void ShowDirt()
+    {
+        if (!Dirt) return;
+
+        if (dirtUseHeadAnchorPosition && headAnchor)
+        {
+            // đặt đúng world pos theo headAnchor và offset
+            Vector3 pos = headAnchor.position + Vector3.up * dirtYOffset;
+            Dirt.transform.position = pos;
+        }
+
+        Dirt.SetActive(true);
+    }
+
+    void HideDirt()
+    {
+        if (Dirt) Dirt.SetActive(false);
     }
 }

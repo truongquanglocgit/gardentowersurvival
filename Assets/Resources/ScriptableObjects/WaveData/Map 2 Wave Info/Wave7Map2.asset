@@ -17,15 +17,15 @@ MonoBehaviour:
   - startTime: 2
     spawnerId: s1
     enemyId: he1
-    count: 10
+    count: 7
     interval: 1
     powerMultiplier: 2
   - startTime: 0
     spawnerId: s3
     enemyId: e2
-    count: 10
+    count: 7
     interval: 1
-    powerMultiplier: 2.5
+    powerMultiplier: 2
   aliveCap: 60
   interWaveDelay: 5
   isBossWave: 0

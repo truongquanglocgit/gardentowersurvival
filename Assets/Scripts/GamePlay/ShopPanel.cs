@@ -25,8 +25,14 @@ public class ShopPanel : MonoBehaviour
     /// </summary>
     public void HidePanel()
     {
+#if ON_ADS
         if (gameObject.activeSelf)
             gameObject.SetActive(false);
+        MAXUtil.Instance.ShowInterAd(FirebaseEventMKTEnum.popup_closeShop.ToString());
+#else
+        gameObject.SetActive(false);
+#endif
+        
     }
 
     /// <summary>

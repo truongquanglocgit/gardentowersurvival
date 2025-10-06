@@ -275,6 +275,7 @@ public class PlayerController : MonoBehaviour
     // Bất tử tạm (GameController sẽ gọi)
     public void SetInvulnerableForSeconds(float seconds)
     {
+
         if (seconds <= 0f)
         {
             isInvulnerable = false;
@@ -285,7 +286,27 @@ public class PlayerController : MonoBehaviour
         StopCoroutine(nameof(CoInvulnerable));
         StartCoroutine(CoInvulnerable(seconds));
     }
-
+    public void useInvulnerable(float seconds)
+    {
+#if ON_ADS
+        MAXUtil.Instance.ShowRewardAd(FirebaseEventMKTEnum.popup_low_health.ToString(), (placement, adUnit, adInfo, countryCodes) =>
+        {
+            if (adUnit == null && adInfo == null && countryCodes == null)
+            {
+                //GameManager.Instance.NoticeNoAds.gameObject.SetActive(true);
+            }
+            else
+            {
+                FirebaseUtil.Instance.LogEventEndWaveAds(FirebaseEventMKTEnum.popup_low_health);
+                SetInvulnerableForSeconds(seconds);
+            }
+        });
+#else
+                PlayerDataManager.Instance.AddAdsCount();
+                
+#endif
+        
+    }
     public IEnumerator CoInvulnerable(float sec)
     {
         isInvulnerable = true;

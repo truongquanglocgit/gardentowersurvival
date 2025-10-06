@@ -1,14 +1,47 @@
 <dependencies>
   <packages>
-    <package>androidx.constraintlayout:constraintlayout:2.1.4</package>
-    <package>androidx.lifecycle:lifecycle-process:2.6.2</package>
-    <package>com.google.android.gms:play-services-ads:24.5.0</package>
-    <package>com.google.android.ump:user-messaging-platform:3.2.0</package>
+    <package>androidx.recyclerview:recyclerview:1.2.1</package>
+    <package>com.android.installreferrer:installreferrer:2.1</package>
+    <package>com.android.support:customtabs:28.+</package>
+    <package>com.android.support:recyclerview-v7:28.+</package>
+    <package>com.applovin.mediation:google-adapter:[24.6.0.0]</package>
+    <package>com.applovin.mediation:inmobi-adapter:10.8.8.0</package>
+    <package>com.applovin.mediation:ironsource-adapter:9.0.0.0.0</package>
+    <package>com.applovin.mediation:mintegral-adapter:16.9.91.0</package>
+    <package>com.applovin.mediation:unityads-adapter:4.16.1.0</package>
+    <package>com.applovin.mediation:vungle-adapter:7.6.0.0</package>
+    <package>com.applovin:applovin-sdk:13.4.0</package>
+    <package>com.appsflyer:adrevenue:6.9.1</package>
+    <package>com.appsflyer:af-android-sdk:6.14.0</package>
+    <package>com.appsflyer:unity-adrevenue-generic-wrapper:6.9.1</package>
+    <package>com.appsflyer:unity-wrapper:6.14.3</package>
+    <package>com.google.android.gms:play-services-base:18.5.0</package>
+    <package>com.google.android.play:core-common:2.0.4</package>
+    <package>com.google.android.play:review:2.0.2</package>
+    <package>com.google.android.ump:user-messaging-platform:2.1.0</package>
+    <package>com.google.firebase:firebase-analytics:22.0.2</package>
+    <package>com.google.firebase:firebase-analytics-unity:12.2.1</package>
+    <package>com.google.firebase:firebase-app-unity:12.2.1</package>
+    <package>com.google.firebase:firebase-common:21.0.0</package>
+    <package>com.google.firebase:firebase-config:22.0.0</package>
+    <package>com.google.firebase:firebase-config-unity:12.2.1</package>
+    <package>com.google.firebase:firebase-crashlytics-ndk:19.0.3</package>
+    <package>com.google.firebase:firebase-crashlytics-unity:12.2.1</package>
+    <package>com.squareup.picasso:picasso:2.71828</package>
   </packages>
-  <files />
+  <files>
+    <file>Assets/GeneratedLocalRepo/Firebase/m2repository/com/google/firebase/firebase-analytics-unity/12.2.1/firebase-analytics-unity-12.2.1.aar</file>
+    <file>Assets/GeneratedLocalRepo/Firebase/m2repository/com/google/firebase/firebase-analytics-unity/12.2.1/firebase-analytics-unity-12.2.1.pom</file>
+    <file>Assets/GeneratedLocalRepo/Firebase/m2repository/com/google/firebase/firebase-app-unity/12.2.1/firebase-app-unity-12.2.1.aar</file>
+    <file>Assets/GeneratedLocalRepo/Firebase/m2repository/com/google/firebase/firebase-app-unity/12.2.1/firebase-app-unity-12.2.1.pom</file>
+    <file>Assets/GeneratedLocalRepo/Firebase/m2repository/com/google/firebase/firebase-config-unity/12.2.1/firebase-config-unity-12.2.1.aar</file>
+    <file>Assets/GeneratedLocalRepo/Firebase/m2repository/com/google/firebase/firebase-config-unity/12.2.1/firebase-config-unity-12.2.1.pom</file>
+    <file>Assets/GeneratedLocalRepo/Firebase/m2repository/com/google/firebase/firebase-crashlytics-unity/12.2.1/firebase-crashlytics-unity-12.2.1.aar</file>
+    <file>Assets/GeneratedLocalRepo/Firebase/m2repository/com/google/firebase/firebase-crashlytics-unity/12.2.1/firebase-crashlytics-unity-12.2.1.pom</file>
+  </files>
   <settings>
     <setting name="androidAbis" value="arm64-v8a" />
-    <setting name="bundleId" value="com.DefaultCompany.GardenTowerDefense" />
+    <setting name="bundleId" value="com.defenders.garden2025" />
     <setting name="explodeAars" value="True" />
     <setting name="gradleBuildEnabled" value="True" />
     <setting name="gradlePropertiesTemplateEnabled" value="True" />

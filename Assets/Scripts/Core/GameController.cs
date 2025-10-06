@@ -11,6 +11,21 @@ using static UnityEngine.Rendering.DebugUI;
 using static UnityEngine.UIElements.UxmlAttributeDescription;
 public class GameController : MonoBehaviour
 {
+    // ==== THÊM SAU NHÓM "UI Volume Sliders" ====
+    [Header("Mute Buttons")]
+    [Tooltip("Nút bật/tắt Music. OnClick => Toggle mute.")]
+    public UnityEngine.UI.Button musicMuteButton;
+    [Tooltip("Hình gạch chéo nằm đè trên nút Music (enable = đang mute).")]
+    public Image musicMuteSlash;
+
+    [Tooltip("Nút bật/tắt VFX/SFX. OnClick => Toggle mute.")]
+    public UnityEngine.UI.Button sfxMuteButton;
+    [Tooltip("Hình gạch chéo nằm đè trên nút SFX (enable = đang mute).")]
+    public Image sfxMuteSlash;
+
+    // Trạng thái runtime
+    private bool musicMuted = false;
+    private bool sfxMuted = false;
     public UseShieldPanel UseShieldPanel; 
     public Canvas TotalCanvas;
     // ================== Core Refs ==================
@@ -197,7 +212,7 @@ public class GameController : MonoBehaviour
     {
         if (reviveSeedText != null && CurrencyManager.Instance != null)
         {
-            reviveSeedText.text = $"{CurrencyManager.Instance.seedAmount} WATER";
+            reviveSeedText.text = $"{CurrencyManager.Instance.waterAmount} WATER";
         }
         if (costSeedText != null)
         {
@@ -245,7 +260,21 @@ public class GameController : MonoBehaviour
         // 5) GIỜ mới add listener (Dynamic)
         if (musicSlider) musicSlider.onValueChanged.AddListener(SetMusicVolume);
         if (sfxSlider) sfxSlider.onValueChanged.AddListener(SetSfxVolume);
+        // 5b) Add listener cho nút Mute
+        if (musicMuteButton)
+        {
+            musicMuteButton.onClick.RemoveAllListeners();
+            musicMuteButton.onClick.AddListener(ToggleMusicMute);
+        }
+        if (sfxMuteButton)
+        {
+            sfxMuteButton.onClick.RemoveAllListeners();
+            sfxMuteButton.onClick.AddListener(ToggleSfxMute);
+        }
 
+        // 5c) Đồng bộ icon gạch chéo ngay khi bắt đầu
+        if (musicMuteSlash) musicMuteSlash.enabled = musicMuted;
+        if (sfxMuteSlash) sfxMuteSlash.enabled = sfxMuted;
 
         // Load wave từ GameSession
         var waveList = GameSession.Instance.selectedWaveList;
@@ -327,15 +356,42 @@ public class GameController : MonoBehaviour
     }
     public void SetMusicVolume(float v)
     {
-        if (masterMixer) masterMixer.SetFloat(MUSIC_PARAM, Linear01ToDb(v));
-    }
-    public void SetSfxVolume(float v)
-    {
-        float db = Linear01ToDb(v);
-        Debug.Log($"[Slider→Mixer] SFX v={v:F2} → {db:F1} dB | sliderRef={(sfxSlider ? sfxSlider.value.ToString("F2") : "<null>")}");
-        if (masterMixer) masterMixer.SetFloat(SFX_PARAM, db);
+        // Nếu đang mute, vẫn ghi nhận v qua slider nhưng mixer áp 0
+        if (masterMixer) masterMixer.SetFloat(MUSIC_PARAM, Linear01ToDb(musicMuted ? 0f : v));
     }
 
+    public void SetSfxVolume(float v)
+    {
+        float vApplied = sfxMuted ? 0f : v;
+        float db = Linear01ToDb(vApplied);
+        Debug.Log($"[Slider→Mixer] SFX v={v:F2} (muted={sfxMuted}) → {db:F1} dB");
+        if (masterMixer) masterMixer.SetFloat(SFX_PARAM, db);
+    }
+    public void ToggleMusicMute()
+    {
+        musicMuted = !musicMuted;
+        if (musicMuteSlash) musicMuteSlash.enabled = musicMuted; // hiện/ẩn gạch chéo
+        ApplyMusicVolume();
+    }
+
+    public void ToggleSfxMute()
+    {
+        sfxMuted = !sfxMuted;
+        if (sfxMuteSlash) sfxMuteSlash.enabled = sfxMuted; // hiện/ẩn gạch chéo
+        ApplySfxVolume();
+    }
+    private void ApplyMusicVolume()
+    {
+        // Nếu đang mute => v = 0; ngược lại lấy từ slider (hoặc default)
+        float v = musicMuted ? 0f : (musicSlider ? musicSlider.value : defaultMusicVol);
+        if (masterMixer) masterMixer.SetFloat(MUSIC_PARAM, Linear01ToDb(v));
+    }
+
+    private void ApplySfxVolume()
+    {
+        float v = sfxMuted ? 0f : (sfxSlider ? sfxSlider.value : defaultSfxVol);
+        if (masterMixer) masterMixer.SetFloat(SFX_PARAM, Linear01ToDb(v));
+    }
     // ================== Alarm helpers ==================
     void CacheSpawnersAndMakeGuides()
     {
@@ -621,7 +677,7 @@ public class GameController : MonoBehaviour
     public void winning()
     {
 
-        CurrencyManager.Instance?.AddSeed(GameSession.Instance.currentMapData.waterReward);
+        CurrencyManager.Instance?.AddWater(GameSession.Instance.currentMapData.waterReward);
 
         // NEW: mark completed map
         var map = GameSession.Instance?.currentMapData;
@@ -665,33 +721,42 @@ public class GameController : MonoBehaviour
     }
     public void OnClickRevive()
     {
-        bool paid = true;
-
-        if (!(_tutorialFreeReviveThisRun && reviveCostSeed == 0))
+        
+#if ON_ADS
+        MAXUtil.Instance.ShowRewardAd(FirebaseEventMKTEnum.popup_yes_endwave_reward.ToString(), (placement, adUnit, adInfo, countryCodes) =>
         {
-            // không free → trừ seed bình thường
-            if (CurrencyManager.Instance != null)
-                paid = CurrencyManager.Instance.TrySpendSeed(reviveCostSeed);
+            if (adUnit == null && adInfo == null && countryCodes == null)
+            {
+                //GameManager.Instance.NoticeNoAds.gameObject.SetActive(true);
+            }
             else
-                paid = TrySpendSeed(0); // fallback
-        }
+            {
+                FirebaseUtil.Instance.LogEventEndWaveAds(FirebaseEventMKTEnum.popup_yes_endwave_reward);
+                bool paid = true;
+                if (!paid)
+                {
+                    Debug.Log("❌ Not enough seed to revive.");
+                    if (revivePanel) revivePanel.SetActive(false);
+                    if (dieCanvas) dieCanvas.SetActive(true);
+                    return;
+                }
 
-        if (!paid)
-        {
-            Debug.Log("❌ Not enough seed to revive.");
-            if (revivePanel) revivePanel.SetActive(false);
-            if (dieCanvas) dieCanvas.SetActive(true);
-            return;
-        }
+                if (!TryRevivePlayer())
+                    Debug.LogWarning("⚠️ Revive attempt failed.");
 
-        if (!TryRevivePlayer())
-            Debug.LogWarning("⚠️ Revive attempt failed.");
+                if (revivePanel) revivePanel.SetActive(false);
+                if (dieCanvas) dieCanvas.SetActive(false);
 
-        if (revivePanel) revivePanel.SetActive(false);
-        if (dieCanvas) dieCanvas.SetActive(false);
+                Time.timeScale = 1f;
+            }
+        });
+#else
+                PlayerDataManager.Instance.AddAdsCount();
+                
+#endif
 
-        Time.timeScale = 1f;
-        UpdateReviveSeedText();
+        
+        
     }
 
 
@@ -704,7 +769,7 @@ public class GameController : MonoBehaviour
         if (pd != null && pd.tutorialCompleted == false)
         {
             // Thưởng 100 seed khi người chơi Give Up lúc chưa hoàn thành tutorial
-            if (CurrencyManager.Instance != null) CurrencyManager.Instance.AddSeed(100);
+            if (CurrencyManager.Instance != null) CurrencyManager.Instance.AddWater(100);
             else AddSeed(100); // fallback
 
             Debug.Log("+100 seed (tutorial give-up bonus).");
@@ -811,4 +876,122 @@ public class GameController : MonoBehaviour
     }
 
     public bool CanPlaceTower() => currentTowerCount < maxTowerCount;
+    // ================== Rewards: 2 nút riêng biệt ==================
+
+    /// <summary>
+    /// Nút "Claim": nhận thưởng bình thường theo MapData hiện tại.
+    /// </summary>
+    public void GrantRewards_Normal()
+    {
+#if ON_ADS
+
+
+
+        GrantRewardsInternal(doubleNonPlant: false);
+        MAXUtil.Instance.ShowInterAd(FirebaseEventMKTEnum.popup_yes_endmap_normalreward.ToString());
+#else
+        gameObject.SetActive(false);
+#endif
+        
+    }
+
+    /// <summary>
+    /// Nút "X2 & Claim": nhân đôi WATER / RAINBOW / XP (KHÔNG x2 plant), rồi nhận.
+    /// </summary>
+    public void GrantRewards_DoubleExceptPlants()
+    {
+#if ON_ADS
+        MAXUtil.Instance.ShowRewardAd(FirebaseEventMKTEnum.popup_yes_endmap_doublereward.ToString(), (placement, adUnit, adInfo, countryCodes) =>
+        {
+            if (adUnit == null && adInfo == null && countryCodes == null)
+            {
+                //GameManager.Instance.NoticeNoAds.gameObject.SetActive(true);
+            }
+            else
+            {
+                FirebaseUtil.Instance.LogEventEndWaveAds(FirebaseEventMKTEnum.popup_yes_endmap_doublereward);
+                GrantRewardsInternal(doubleNonPlant: true);
+            }
+        });
+#else
+                PlayerDataManager.Instance.AddAdsCount();
+                
+#endif
+       
+    }
+
+    /// <summary>
+    /// Thực thi cấp thưởng vào PlayerData (nếu doubleNonPlant=true thì x2 Water/Rainbow/XP).
+    /// </summary>
+    private void GrantRewardsInternal(bool doubleNonPlant)
+    {
+        var session = GameSession.Instance;
+        if (session == null || session.currentMapData == null)
+        {
+            Debug.LogWarning("[Reward] No GameSession.currentMapData to grant.");
+            return;
+        }
+
+        var map = session.currentMapData;
+
+        // 1) Tính lượng thưởng
+        int water = Mathf.Max(0, map.waterReward);
+        int rainbow = Mathf.Max(0, map.rainbowWaterReward);
+        int xp = Mathf.RoundToInt(Mathf.Max(0f, map.xp));
+
+        if (doubleNonPlant)
+        {
+            water *= 2;
+            rainbow *= 2;
+            xp *= 2;
+        }
+
+        // 2) Cộng tiền tệ
+        if (CurrencyManager.Instance != null)
+        {
+            if (water > 0) CurrencyManager.Instance.AddWater(water);
+            if (rainbow > 0) CurrencyManager.Instance.AddRainbowWater(rainbow);
+        }
+        else
+        {
+            // Fallback nếu chưa có CurrencyManager
+            var pdm = PlayerDataManager.Instance;
+            if (pdm != null)
+            {
+                pdm.playerData.waterAmount += water;
+                pdm.playerData.rainbowWaterAmount += rainbow;
+                pdm.SavePlayerData();
+            }
+        }
+
+        // 3) Cộng XP
+        if (xp > 0 && PlayerDataManager.Instance != null)
+            PlayerDataManager.Instance.AddXp(xp);
+
+        // 4) Mở khoá plant (không x2)
+        var plantList = map.plantRewardList;
+        if (plantList != null && PlayerDataManager.Instance != null)
+        {
+            int added = 0;
+            foreach (var towerId in plantList)
+            {
+                if (string.IsNullOrEmpty(towerId)) continue;
+                var pd = PlayerDataManager.Instance.playerData;
+                if (!pd.unlockedTowerIds.Contains(towerId))
+                {
+                    pd.unlockedTowerIds.Add(towerId);
+                    added++;
+                }
+            }
+            if (added > 0) PlayerDataManager.Instance.SavePlayerData();
+            Debug.Log($"[Reward] Plants unlocked +{added}");
+        }
+
+        // 5) Đánh dấu hoàn thành map
+        if (PlayerDataManager.Instance != null && !string.IsNullOrEmpty(map.mapId))
+            PlayerDataManager.Instance.MarkMapCompleted(map.mapId);
+
+        Debug.Log($"[Reward] Granted ({(doubleNonPlant ? "x2 non-plant" : "normal")}) → Water={water}, Rainbow={rainbow}, XP={xp}, Plants={(plantList != null ? plantList.Count : 0)}");
+    }
+
 }

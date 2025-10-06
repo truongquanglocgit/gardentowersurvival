@@ -3,10 +3,10 @@ using static MaxSdkBase;
 public class SDKConfig
 {
     #region MAX
-    public const string AppOpenAdUnitId = "7601ac053512e146";
-    public const string InterAdUnitId = "446cb114da7708e5";
-    public const string BannerAdUnitId = "55c68caa0f9b0bb4";
-    public const string RewardAdUnitId = "f0f673efc512b8d4";
+    public const string AppOpenAdUnitId = "a98eea58b5fca767";
+    public const string InterAdUnitId = "bae22cd250c600ad";
+    public const string BannerAdUnitId = "889b5ed725dc521c";
+    public const string RewardAdUnitId = "db1cae4f7b611ec2";
     public const string CURRENCY = "USD";
     public const AdViewPosition BANNER_POSITION = AdViewPosition.BottomCenter;
     #endregion

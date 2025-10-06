@@ -281,10 +281,10 @@ public class MAXUtil : MoreMountains.Tools.MMPersistentSingleton<MAXUtil>, MMEve
     {
         _interCallback = interCallback;
         MAXActionEvent.Trigger(FirebaseEventMKTEnum.show_interstitial_ads, placment);
-        /*if (!CanShowAds || !CanShowInterAds || !FirebaseUtil.Instance.IsShowInter)
+        if (!CanShowAds || !CanShowInterAds || !FirebaseUtil.Instance.IsShowInter)
         {
             return;
-        }*/
+        }
         if (MaxSdk.IsInterstitialReady(SDKConfig.InterAdUnitId))
         {
             ResetTimeRefocusShow();
@@ -296,14 +296,14 @@ public class MAXUtil : MoreMountains.Tools.MMPersistentSingleton<MAXUtil>, MMEve
         }
     }
 
-    public bool CanShowInter
+/*    public bool CanShowInter
     {
         get
         {
             if (!CanShowAds || !CanShowInterAds || !FirebaseUtil.Instance.IsShowInter) return false;
             return MaxSdk.IsInterstitialReady(SDKConfig.InterAdUnitId);
         }
-    }
+    }*/
 
     Action<string, string, AdInfo, string> _rewardCallback;
     /// <summary>

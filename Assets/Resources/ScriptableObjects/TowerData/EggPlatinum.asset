@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 097c4c59b126f2c42bcf98548d5b5436, type: 3}
+  m_Name: EggPlatinum
+  m_EditorClassIdentifier: 
+  towerId: t11
+  displayName: EggPlatinum
+  icon: {fileID: 21300000, guid: 0b3dbb794ebc4644c86a40e7f14688c6, type: 3}
+  rarity: 6
+  cost: 5000
+  range: 10
+  fireRate: 10
+  damage: 50
+  prefab: {fileID: 8246720172038667037, guid: 2568917543755ac4ab7f338b7a00accc, type: 3}
